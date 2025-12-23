@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { CreateCampaignWizard } from "@/components/CreateCampaignWizard";
 import { StatCard } from "@/components/StatCard";
 import {
     Users,
@@ -335,64 +336,12 @@ export default function Dashboard() {
                     <div className="space-y-8">
                         {/* Create Campaign UI (for Brand) */}
                         {role === 'brand' && (
-                            <div className="p-8 rounded-3xl glass border border-white/5 space-y-6">
-                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                    <Zap className="w-5 h-5 text-primary" />
-                                    Quick Launch
-                                </h3>
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Campaign Details</label>
-                                        <textarea
-                                            value={newCampaign.details}
-                                            onChange={(e) => setNewCampaign({ ...newCampaign, details: e.target.value })}
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm focus:outline-none focus:border-primary/50 min-h-[100px]"
-                                            placeholder="Describe what you need from creators..."
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Reward (MNEE)</label>
-                                            <input
-                                                value={newCampaign.reward}
-                                                onChange={(e) => setNewCampaign({ ...newCampaign, reward: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50"
-                                                placeholder="50"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Max Creators</label>
-                                            <input
-                                                value={newCampaign.maxCreators}
-                                                onChange={(e) => setNewCampaign({ ...newCampaign, maxCreators: e.target.value })}
-                                                className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-primary/50"
-                                                placeholder="2"
-                                            />
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={handleCreateCampaign}
-                                        disabled={step !== 'idle' || isPosting || isConfirming}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl bg-primary text-white font-bold text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 disabled:opacity-50 disabled:scale-100"
-                                    >
-                                        {step === 'approving' ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Step 1: Approving MNEE...
-                                            </>
-                                        ) : step === 'creating' ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Step 2: Launching Campaign...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Zap className="w-4 h-4" />
-                                                Launch Campaign
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
+                            <div className="col-span-1 border border-transparent">
+                                <CreateCampaignWizard onSuccess={() => {
+                                    refetchCount();
+                                    refetchLatest();
+                                    alert("Campaign Launched Successfully!");
+                                }} />
                             </div>
                         )}
 
