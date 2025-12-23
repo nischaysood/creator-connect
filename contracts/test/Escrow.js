@@ -1,9 +1,10 @@
-const {
+import {
     time,
     loadFixture,
-} = require("@nomicfoundation/hardhat-network-helpers");
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+} from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
+import hre from "hardhat";
+const { ethers } = hre;
 
 describe("CreatorConnectEscrow", function () {
     async function deployEscrowFixture() {
