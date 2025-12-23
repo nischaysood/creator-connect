@@ -17,7 +17,7 @@ interface StatCardProps {
 export function StatCard({ title, value, trend, icon, className }: StatCardProps) {
     return (
         <div className={cn(
-            "p-6 rounded-3xl glass border border-white/5 relative overflow-hidden group hover:border-primary/20 transition-all duration-300",
+            "p-6 rounded-3xl glass border border-white/5 relative overflow-hidden group hover:border-primary/20 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300",
             className
         )}>
             <div className="flex justify-between items-start mb-4 relative z-10">

@@ -396,32 +396,48 @@ export default function Dashboard() {
                             </div>
                         )}
 
-                        {/* AI Agent Status Card */}
-                        <div className="p-8 rounded-3xl bg-gradient-to-br from-indigo-500/10 to-blue-600/10 border border-blue-500/20 relative overflow-hidden group">
-                            <div className="relative z-10 space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                                        <ShieldCheck className="w-4 h-4 text-white" />
-                                    </div>
-                                    <span className="text-sm font-bold text-white">AI Verification Agent</span>
-                                </div>
+                        {/* AI Agent Status Card - Cyberpunk Version */}
+                        <div className="p-8 rounded-3xl relative overflow-hidden group border border-primary/20">
+                            {/* Animated Background */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent z-0" />
+                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 z-0 mix-blend-overlay" />
 
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground">Verification Queue</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-2xl font-bold text-white tracking-tight">Idle</span>
-                                        <div className="flex space-x-1">
-                                            {[1, 2, 3].map(i => <div key={i} className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDelay: `${i * 200}ms` }} />)}
+                            <div className="relative z-10 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg shadow-primary/25 relative">
+                                            <ShieldCheck className="w-5 h-5 text-white" />
+                                            <div className="absolute inset-0 rounded-xl ring-2 ring-white/20 animate-pulse" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-base font-bold text-white font-heading">AI Verification Agent</h3>
+                                            <p className="text-[10px] text-primary/80 font-mono uppercase tracking-wider">v2.4.0 Online</p>
                                         </div>
                                     </div>
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-[pulse_2s_ease-in-out_infinite]" />
+                                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wide">Active</span>
+                                    </div>
                                 </div>
 
-                                <p className="text-[10px] text-blue-300 leading-relaxed italic">
-                                    "Agent initialized. Ready to verify content integrity using high-precision neural analysis."
-                                </p>
+                                <div className="space-y-3 bg-black/20 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-muted-foreground">System Status</span>
+                                        <span className="text-white font-mono">OPERATIONAL</span>
+                                    </div>
+                                    <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                                        <div className="bg-gradient-to-r from-primary to-purple-500 h-full w-[98%] shadow-[0_0_10px_rgba(0,240,255,0.5)]" />
+                                    </div>
+                                    <p className="text-[10px] text-blue-300 font-mono leading-relaxed mt-2">
+                                        &gt; Initializing neural verification... <br />
+                                        &gt; Smart Contracts: CONNECTED <br />
+                                        &gt; MNEE Liquidity: STABLE
+                                    </p>
+                                </div>
                             </div>
-                            {/* Decor */}
-                            <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-blue-500/20 blur-3xl rounded-full" />
+
+                            {/* Decorative Glow */}
+                            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/20 blur-[100px] rounded-full group-hover:bg-primary/30 transition-all duration-1000" />
                         </div>
 
                         {/* Recent Notifications */}

@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="min-h-screen bg-[#0f172a] text-[#f8fafc] selection:bg-primary/30">
+        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/10 via-[#05050a] to-[#05050a] text-[#f8fafc] selection:bg-primary/30 relative">
+            <div className="fixed inset-0 bg-[url('/grid.svg')] opacity-[0.02] pointer-events-none" />
             <Sidebar />
             <div className="pl-64 flex flex-col min-h-screen">
                 <Header />

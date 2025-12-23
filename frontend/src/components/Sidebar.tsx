@@ -38,8 +38,8 @@ export function Sidebar() {
                     <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                         <Wallet className="text-white w-6 h-6" />
                     </div>
-                    <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                        CreatorConnect
+                    <span className="text-xl font-bold tracking-tight text-white font-heading">
+                        Creator<span className="text-primary">Connect</span>
                     </span>
                 </div>
             </div>
