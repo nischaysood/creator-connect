@@ -1,64 +1,53 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createWalletClient, createPublicClient, http, hexToBytes } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { hardhat } from "viem/chains";
-import { ESCROW_ADDRESS, ESCROW_ABI } from "@/constants";
+import { NextResponse } from 'next/server';
 
-// Hardhat Account #1 private key (Agent)
-const AGENT_PRIVATE_KEY = (process.env.AGENT_PRIVATE_KEY || "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d") as `0x${string}`;
-
-const account = privateKeyToAccount(AGENT_PRIVATE_KEY);
-
-const client = createWalletClient({
-    account,
-    chain: hardhat,
-    transport: http(),
-});
-
-const publicClient = createPublicClient({
-    chain: hardhat,
-    transport: http(),
-});
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
     try {
-        const { campaignId, creatorAddress, contentUrl } = await req.json();
+        const { url, campaignId, requirements } = await req.json();
 
-        console.log(`[AI Agent] Verifying content for campaign ${campaignId}, creator ${creatorAddress}`);
-        console.log(`[AI Agent] URL: ${contentUrl}`);
-
-        // AI Simulation: Check if URL contains instagram or youtube
-        const isMockVerified = contentUrl.includes("instagram.com") || contentUrl.includes("youtube.com");
-
-        if (!isMockVerified) {
-            return NextResponse.json({
-                success: false,
-                message: "AI Agent could not verify the content. Ensure it's a valid Instagram or YouTube link."
-            }, { status: 400 });
+        if (!url) {
+            return NextResponse.json({ error: 'URL is required' }, { status: 400 });
         }
 
-        // Call verifyAndRelease on the escrow contract
-        const { request } = await publicClient.simulateContract({
-            account,
-            address: ESCROW_ADDRESS,
-            abi: ESCROW_ABI,
-            functionName: "verifyAndRelease",
-            args: [BigInt(campaignId), creatorAddress, true],
-        });
+        // SIMULATED AI AGENT BEHAVIOR
+        // In a real app, this would use Puppeteer/Playwright to scrape the content
+        // and an LLM to verify it against the requirements.
 
-        const hash = await client.writeContract(request);
+        console.log(`[AI Agent] Analyzing content at: ${url} for campaign ${campaignId}`);
+
+        // Mock analysis delay
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Basic heuristic checks simulation
+        const isSocialMedia = url.includes('twitter.com') || url.includes('instagram.com') || url.includes('youtube.com') || url.includes('tiktok.com');
+
+        // Deterministic mock result based on URL length to allow for testing both success and failure
+        // If URL contains "fail", we return a low score.
+        const shouldFail = url.toLowerCase().includes('fail');
+
+        if (!isSocialMedia) {
+            return NextResponse.json({
+                verified: false,
+                score: 0,
+                reason: 'URL must be from a supported social platform (Twitter, Instagram, YouTube, TikTok).'
+            });
+        }
+
+        if (shouldFail) {
+            return NextResponse.json({
+                verified: false,
+                score: 45,
+                reason: 'Content does not appear to match campaign requirements. Missing required hashtag #Ad.'
+            });
+        }
 
         return NextResponse.json({
-            success: true,
-            txHash: hash,
-            message: "AI Agent successfully verified the content and released payment!"
+            verified: true,
+            score: 95,
+            reason: 'Content verified! • High engagement detected • Required hashtags found • Brand safe'
         });
 
-    } catch (error: any) {
-        console.error("[AI Agent] Error:", error);
-        return NextResponse.json({
-            success: false,
-            error: error.message || "Unknown error during verification"
-        }, { status: 500 });
+    } catch (error) {
+        console.error('AI Verify Error:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

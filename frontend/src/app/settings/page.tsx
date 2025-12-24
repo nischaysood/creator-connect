@@ -1,15 +1,12 @@
 "use client";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { SettingsView } from "@/components/SettingsView";
 
 export default function SettingsPage() {
     return (
         <DashboardLayout>
             <div className="space-y-4">
-                <h1 className="text-3xl font-bold text-white">Settings</h1>
-                <p className="text-muted-foreground">Configure your account and platform preferences.</p>
-                <div className="p-12 border border-dashed border-white/10 rounded-3xl flex items-center justify-center text-muted-foreground">
-                    Settings coming soon...
-                </div>
+                <SettingsView />
             </div>
         </DashboardLayout>
     );
