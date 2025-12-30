@@ -12,7 +12,8 @@ import {
     Wallet,
     ArrowRight,
     Check,
-    Loader2
+    Loader2,
+    AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { parseEther } from "viem";
@@ -43,7 +44,8 @@ export function CreateCampaignWizard({ onSuccess }: { onSuccess: () => void }) {
         // Step 3
         budget: "",
         rewardPerCreator: "",
-        token: "MNEE"
+        token: "MNEE",
+        duration: "7" // Default 7 days
     });
 
     // Contract interactions
@@ -74,13 +76,22 @@ export function CreateCampaignWizard({ onSuccess }: { onSuccess: () => void }) {
                 address: ESCROW_ADDRESS,
                 abi: ESCROW_ABI,
                 functionName: "createCampaign",
-                args: [detailsJson, parseEther(formData.rewardPerCreator), BigInt(maxCreators)],
+                args: [detailsJson, parseEther(formData.rewardPerCreator), BigInt(maxCreators), BigInt(formData.duration)],
             });
         } else if (isConfirmed && txStep === "creating") {
             setTxStep("idle");
             onSuccess();
         }
-    }, [isConfirmed, txStep]);
+    }, [isConfirmed, txStep, formData, writeContract]);
+
+    useEffect(() => {
+        if (hash) {
+            console.log("Transaction submitted:", hash);
+        }
+        if (error) {
+            console.error("Contract Error:", error);
+        }
+    }, [hash, error]);
 
 
     const handleNext = () => setStep(s => Math.min(s + 1, 3) as Step);
@@ -291,6 +302,26 @@ export function CreateCampaignWizard({ onSuccess }: { onSuccess: () => void }) {
                             </div>
                         </div>
 
+                        <div className="space-y-4">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Campaign Duration</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[7, 14, 30].map(days => (
+                                    <button
+                                        key={days}
+                                        onClick={() => setFormData({ ...formData, duration: days.toString() })}
+                                        className={cn(
+                                            "py-2 rounded-xl text-xs font-bold border transition-all",
+                                            formData.duration === days.toString()
+                                                ? "bg-purple-500 text-white border-purple-500"
+                                                : "bg-white/5 text-gray-400 border-white/10 hover:border-purple-500/30"
+                                        )}
+                                    >
+                                        {days} Days
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         <div className="bg-white/5 rounded-xl p-4 flex items-center justify-between">
                             <span className="text-sm text-gray-400">Currency</span>
                             <div className="flex gap-2">
@@ -349,12 +380,12 @@ export function CreateCampaignWizard({ onSuccess }: { onSuccess: () => void }) {
                         {txStep === "approving" ? (
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                Approving {formData.token}...
+                                {isConfirming ? "Mining Approval..." : "Approving MNEE..."}
                             </>
                         ) : txStep === "creating" ? (
                             <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                Creating Contract...
+                                {isConfirming ? "Mining Campaign..." : "Creating Campaign..."}
                             </>
                         ) : (
                             <>
@@ -365,6 +396,16 @@ export function CreateCampaignWizard({ onSuccess }: { onSuccess: () => void }) {
                     </button>
                 )}
             </div>
+
+            {error && (
+                <div className="p-4 mx-6 mb-6 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
+                    <p className="font-bold flex items-center gap-2 mb-1">
+                        <AlertCircle className="w-3 h-3" /> Error Detected
+                    </p>
+                    {error.message.includes("User rejected") ? "Transaction rejected in wallet." : error.message.slice(0, 100) + "..."}
+                    <p className="mt-2 text-[10px] opacity-70 italic">Tip: If stuck, try resetting your MetaMask account (Settings &gt; Advanced &gt; Clear activity tab data).</p>
+                </div>
+            )}
         </div>
     );
 }

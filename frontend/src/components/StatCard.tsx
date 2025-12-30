@@ -42,7 +42,6 @@ export function StatCard({ title, value, trend, icon, className }: StatCardProps
                             {trend.isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                             {trend.value}
                         </div>
-                        <span className="text-[10px] text-muted-foreground">vs last month</span>
                     </div>
                 )}
             </div>

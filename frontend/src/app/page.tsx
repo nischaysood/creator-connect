@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Hexagon } from "lucide-react";
+import { ArrowRight, Hexagon, Target, Users, Zap, ShieldCheck } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -29,7 +29,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-8">
           <Link href="/dashboard" className="hidden md:block text-sm font-medium text-gray-400 hover:text-white transition-colors">SignIn</Link>
           <Link
-            href="/dashboard"
+            href="#path"
             className="px-6 py-2.5 rounded-full bg-white text-black text-sm font-bold hover:bg-gray-100 transition-colors shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)]"
           >
             Launch App
@@ -64,7 +64,7 @@ export default function LandingPage() {
         {/* CTA */}
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <Link
-            href="/dashboard"
+            href="#path"
             className="group relative px-8 py-4 rounded-full bg-purple-600 text-white font-bold text-lg overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(168,85,247,0.5)]"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -76,6 +76,54 @@ export default function LandingPage() {
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors flex items-center gap-2 text-lg font-medium">
             View Documentation
           </Link>
+        </div>
+
+        {/* ROLE SELECTION SECTION */}
+        <div id="path" className="mt-32 w-full max-w-5xl scroll-mt-24">
+          <h2 className="text-sm font-bold text-purple-400 uppercase tracking-[0.3em] mb-12">Choose Your Path</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
+
+            {/* Brand Card */}
+            <Link
+              href="/dashboard?role=brand"
+              className="group relative p-8 rounded-3xl bg-white/[0.03] border border-white/5 hover:border-purple-500/50 transition-all hover:bg-white/[0.05] overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full group-hover:bg-purple-500/20 transition-colors" />
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-purple-500/20 flex items-center justify-center mb-6 border border-purple-500/30">
+                  <Target className="w-7 h-7 text-purple-400" />
+                </div>
+                <h3 className="text-3xl font-bold text-white mb-3">Enterprise Brand</h3>
+                <p className="text-gray-400 text-lg leading-relaxed mb-8">
+                  Launch campaigns, manage budgets, and use AI agents to verify content performance at scale.
+                </p>
+                <div className="flex items-center gap-2 text-purple-400 font-bold group-hover:gap-4 transition-all uppercase tracking-widest text-xs">
+                  Enter Brand Suite <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            </Link>
+
+            {/* Creator Card */}
+            <Link
+              href="/dashboard?role=creator"
+              className="group relative p-8 rounded-3xl bg-white/[0.03] border border-white/5 hover:border-cyan-500/50 transition-all hover:bg-white/[0.05] overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-cyan-500/10 blur-[80px] rounded-full group-hover:bg-cyan-500/20 transition-colors" />
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 flex items-center justify-center mb-6 border border-cyan-500/30">
+                  <Users className="w-7 h-7 text-cyan-400" />
+                </div>
+                <h3 className="text-3xl font-bold text-white mb-3">Content Creator</h3>
+                <p className="text-gray-400 text-lg leading-relaxed mb-8">
+                  Discover top-tier brand deals, submit your work, and get paid instantly in stablecoins.
+                </p>
+                <div className="flex items-center gap-2 text-cyan-400 font-bold group-hover:gap-4 transition-all uppercase tracking-widest text-xs">
+                  Enter Creator Studio <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+            </Link>
+
+          </div>
         </div>
 
       </section>

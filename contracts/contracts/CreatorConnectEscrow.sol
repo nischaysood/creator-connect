@@ -22,6 +22,16 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
         uint256 totalPaid;
         bool isActive;
         uint256 createdAt;
+        uint256 deadline;
+    }
+
+    struct UserProfile {
+        address wallet;
+        string name;
+        string bio;
+        string avatar;
+        string role; // "brand" or "creator"
+        bool exists;
     }
 
     struct Enrollment {
@@ -37,6 +47,10 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
     mapping(uint256 => Enrollment[]) public campaignEnrollments;
     mapping(uint256 => mapping(address => bool)) public hasEnrolled;
 
+    mapping(address => UserProfile) public profiles;
+    address[] public allProfileAddresses;
+
+    event ProfileUpdated(address indexed wallet, string name, string role);
     event CampaignCreated(uint256 indexed campaignId, address indexed brand, uint256 rewardPerCreator);
     event CreatorEnrolled(uint256 indexed campaignId, address indexed creator);
     event SubmissionVerified(uint256 indexed campaignId, address indexed creator, bool success);
@@ -56,7 +70,8 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
     function createCampaign(
         string memory _details,
         uint256 _rewardPerCreator,
-        uint256 _maxCreators
+        uint256 _maxCreators,
+        uint256 _durationDays
     ) external nonReentrant returns (uint256) {
         require(_rewardPerCreator > 0, "Reward must be > 0");
         require(_maxCreators > 0, "Max creators must be > 0");
@@ -75,7 +90,8 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
             totalDeposited: totalRequired,
             totalPaid: 0,
             isActive: true,
-            createdAt: block.timestamp
+            createdAt: block.timestamp,
+            deadline: block.timestamp + (_durationDays * 1 days)
         });
 
         emit CampaignCreated(campaignId, msg.sender, _rewardPerCreator);
@@ -87,8 +103,11 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
     function enroll(uint256 _campaignId) external {
         Campaign storage campaign = campaigns[_campaignId];
         require(campaign.isActive, "Campaign not active");
+        require(block.timestamp < campaign.deadline, "Campaign expired");
         require(!hasEnrolled[_campaignId][msg.sender], "Already enrolled");
         require(campaignEnrollments[_campaignId].length < campaign.maxCreators, "Campaign full");
+        // Extra check for "Budget Burn" (Capital-Based)
+        require(campaign.totalPaid + (campaignEnrollments[_campaignId].length * campaign.rewardPerCreator) < campaign.totalDeposited, "No budget left");
 
         enrollments(_campaignId).push(Enrollment({
             creator: msg.sender,
@@ -149,6 +168,32 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
             }
         }
         revert("Creator not found in campaign");
+    }
+
+    function registerProfile(
+        string memory _name,
+        string memory _bio,
+        string memory _avatar,
+        string memory _role
+    ) external {
+        if (!profiles[msg.sender].exists) {
+            allProfileAddresses.push(msg.sender);
+        }
+        
+        profiles[msg.sender] = UserProfile({
+            wallet: msg.sender,
+            name: _name,
+            bio: _bio,
+            avatar: _avatar,
+            role: _role,
+            exists: true
+        });
+
+        emit ProfileUpdated(msg.sender, _name, _role);
+    }
+
+    function getAllProfileAddresses() external view returns (address[] memory) {
+        return allProfileAddresses;
     }
 
     function updateVerifier(address _newVerifier) external onlyOwner {

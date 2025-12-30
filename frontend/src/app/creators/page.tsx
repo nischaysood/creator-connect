@@ -1,85 +1,70 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { CreatorCard } from "@/components/CreatorCard";
-import { Search, Filter } from "lucide-react";
-
-// Mock Data for Demo
-const MOCK_CREATORS = [
-    {
-        id: "1",
-        name: "Alex Rivera",
-        handle: "arivera_tech",
-        niche: ["Tech", "Reviews", "Gadgets"],
-        platform: "YouTube" as const,
-        followers: "1.2M",
-        engagement: "8.5%",
-        aiScore: 98,
-        imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200&h=200"
-    },
-    {
-        id: "2",
-        name: "Sarah Chen",
-        handle: "sarahc_style",
-        niche: ["Fashion", "Lifestyle", "Travel"],
-        platform: "Instagram" as const,
-        followers: "850K",
-        engagement: "12.2%",
-        aiScore: 95,
-        imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200&h=200"
-    },
-    {
-        id: "3",
-        name: "Darius J.",
-        handle: "dj_beats",
-        niche: ["Music", "Production", "Vlog"],
-        platform: "TikTok" as const,
-        followers: "2.5M",
-        engagement: "15%",
-        aiScore: 92,
-        imageUrl: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&q=80&w=200&h=200"
-    },
-    {
-        id: "4",
-        name: "Crypto King",
-        handle: "cryptoking_eth",
-        niche: ["Crypto", "Finance", "Web3"],
-        platform: "X" as const,
-        followers: "420K",
-        engagement: "5.4%",
-        aiScore: 99,
-        imageUrl: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&q=80&w=200&h=200"
-    },
-    {
-        id: "5",
-        name: "Elena G.",
-        handle: "elena_gaming",
-        niche: ["Gaming", "Streaming", "Cosplay"],
-        platform: "YouTube" as const,
-        followers: "3.1M",
-        engagement: "9.8%",
-        aiScore: 96,
-        imageUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=200&h=200"
-    },
-    {
-        id: "6",
-        name: "Dr. Fitness",
-        handle: "fit_doc",
-        niche: ["Health", "Fitness", "Science"],
-        platform: "Instagram" as const,
-        followers: "600K",
-        engagement: "11%",
-        aiScore: 94,
-        imageUrl: "https://images.unsplash.com/photo-1628157588553-5eeea00af15c?auto=format&fit=crop&q=80&w=200&h=200"
-    }
-];
+import { Search, Filter, Loader2 } from "lucide-react";
+import { useReadContract, useReadContracts } from "wagmi";
+import { ESCROW_ADDRESS, ESCROW_ABI } from "@/constants";
 
 export default function CreatorsPage() {
     const [searchTerm, setSearchTerm] = useState("");
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const { data: profileAddresses } = useReadContract({
+        address: ESCROW_ADDRESS as `0x${string}`,
+        abi: ESCROW_ABI,
+        functionName: "getAllProfileAddresses",
+    });
+
+    const { data: profilesData, isLoading } = useReadContracts({
+        contracts: (profileAddresses || []).map((addr) => ({
+            address: ESCROW_ADDRESS as `0x${string}`,
+            abi: ESCROW_ABI,
+            functionName: "profiles",
+            args: [addr],
+        }))
+    });
+
+    const creators = (profilesData || [])
+        .map(res => res.result)
+        .filter((p: any) => p && (p.exists || p[5]) && (p.role === "creator" || p[4] === "creator"))
+        .map((p: any) => {
+            const name = p.name || p[1];
+            const bio = p.bio || p[2];
+            const avatar = p.avatar || p[3];
+            const wallet = p.wallet || p[0];
+
+            return {
+                id: wallet,
+                name: name,
+                handle: name ? name.toLowerCase().replace(/\s+/g, '_') : 'user',
+                avatar: avatar,
+                category: bio,
+                followers: "Verified",
+                engagement: "Real-time",
+                aiScore: 95,
+                verified: true,
+                niche: [bio],
+                platform: "YouTube" as const,
+                imageUrl: avatar
+            };
+        });
 
     const handleInvite = (name: string) => {
         alert(`Invitation sent to ${name}!`);
     };
+
+    if (!mounted) return null;
+
+    const filteredCreators = creators.filter(c =>
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <DashboardLayout>
@@ -110,17 +95,28 @@ export default function CreatorsPage() {
                 </div>
 
                 {/* Creators Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {MOCK_CREATORS
-                        .filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.handle.toLowerCase().includes(searchTerm.toLowerCase()))
-                        .map((creator) => (
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredCreators.map((creator) => (
                             <CreatorCard
                                 key={creator.id}
                                 creator={creator}
                                 onInvite={() => handleInvite(creator.name)}
                             />
                         ))}
-                </div>
+
+                        {filteredCreators.length === 0 && (
+                            <div className="col-span-full py-20 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
+                                <p className="text-gray-500 font-bold">No creators found yet.</p>
+                                <p className="text-xs text-gray-600 mt-1 uppercase tracking-widest font-bold">Be the first to join!</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </DashboardLayout>
     );

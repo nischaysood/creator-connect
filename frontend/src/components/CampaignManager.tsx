@@ -36,7 +36,7 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
     });
 
     const { writeContract, data: hash, isPending } = useWriteContract();
-    const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+    const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
     React.useEffect(() => {
         if (isConfirmed) {
@@ -157,8 +157,11 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
                                             <SubmissionRow
                                                 key={idx}
                                                 sub={sub}
-                                                onVerify={() => handleVerify(sub.creator)}
-                                                isPendingTx={isPending && verifyingId === sub.creator}
+                                                campaignId={id}
+                                                onVerify={() => refetch()}
+                                                onManualVerify={() => handleVerify(sub.creator)}
+                                                isPendingTx={(isPending || isConfirming) && verifyingId === sub.creator}
+                                                isConfirming={isConfirming && verifyingId === sub.creator}
                                             />
                                         ))}
                                     </tbody>
@@ -203,7 +206,7 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
     );
 }
 
-function SubmissionRow({ sub, onVerify, isPendingTx }: { sub: any, onVerify: () => void, isPendingTx: boolean }) {
+function SubmissionRow({ sub, campaignId, onVerify, onManualVerify, isPendingTx, isConfirming }: { sub: any, campaignId: number, onVerify: () => void, onManualVerify: () => void, isPendingTx: boolean, isConfirming: boolean }) {
     const [aiStatus, setAiStatus] = useState<'idle' | 'analyzing' | 'success' | 'error'>('idle');
     const [aiResult, setAiResult] = useState<any>(null);
 
@@ -212,11 +215,20 @@ function SubmissionRow({ sub, onVerify, isPendingTx }: { sub: any, onVerify: () 
         try {
             const res = await fetch('/api/verify', {
                 method: 'POST',
-                body: JSON.stringify({ url: sub.submissionUrl, campaignId: "123" }), // mock ID
+                body: JSON.stringify({
+                    url: sub.submissionUrl,
+                    campaignId: campaignId.toString(),
+                    creatorAddress: sub.creator
+                }),
             });
             const data = await res.json();
             setAiStatus('success');
             setAiResult(data);
+            if (data.txHash) {
+                // If a payout was triggered, we should refetch to update the status
+                console.log("Payout triggered for creator:", sub.creator);
+                setTimeout(onVerify, 2000); // Trigger refetch after short delay to allow block inclusion
+            }
         } catch (e) {
             setAiStatus('error');
         }
@@ -291,18 +303,10 @@ function SubmissionRow({ sub, onVerify, isPendingTx }: { sub: any, onVerify: () 
                 )}
             </td>
             <td className="p-4 text-right">
-                {!sub.isPaid && sub.submissionUrl && (
-                    <button
-                        onClick={onVerify}
-                        disabled={isPendingTx}
-                        className="px-3 py-1.5 rounded-lg bg-white text-black font-bold text-xs hover:bg-gray-200 transition-colors disabled:opacity-50"
-                    >
-                        {isPendingTx ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                            "Verify & Pay"
-                        )}
-                    </button>
+                {!sub.isPaid && sub.submissionUrl && aiStatus === 'success' && aiResult?.verified && (
+                    <span className="text-[10px] text-emerald-400 font-bold flex items-center justify-end gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Payout Automated
+                    </span>
                 )}
             </td>
         </tr>

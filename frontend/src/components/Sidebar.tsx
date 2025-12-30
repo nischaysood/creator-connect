@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
     LayoutDashboard,
@@ -30,6 +31,25 @@ const bottomNav = [
 
 export function Sidebar() {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const [role, setRole] = useState<"brand" | "creator">("brand");
+
+    useEffect(() => {
+        const savedRole = localStorage.getItem("user-role") as "brand" | "creator" | null;
+        const queryRole = searchParams.get('role') as "brand" | "creator" | null;
+        if (queryRole) {
+            setRole(queryRole);
+        } else if (savedRole) {
+            setRole(savedRole);
+        }
+    }, [searchParams]);
+
+    const navItems = mainNav.map(item => {
+        if (item.name === "Creators" && role === "creator") {
+            return { ...item, name: "Brands", href: "/brands" };
+        }
+        return item;
+    });
 
     return (
         <div className="flex flex-col h-screen w-64 glass-dark border-r border-white/5 fixed left-0 top-0 z-50">
@@ -38,9 +58,20 @@ export function Sidebar() {
                     <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                         <Wallet className="text-white w-6 h-6" />
                     </div>
-                    <span className="text-xl font-bold tracking-tight text-white font-heading">
-                        Creator<span className="text-primary">Connect</span>
-                    </span>
+                    <div className="flex flex-col">
+                        <span className="text-xl font-bold tracking-tight text-white font-heading leading-tight">
+                            Creator<span className="text-primary">Connect</span>
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <div className={cn(
+                                "w-1.5 h-1.5 rounded-full animate-pulse",
+                                role === 'brand' ? "bg-purple-500" : "bg-cyan-500"
+                            )} />
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
+                                {role === 'brand' ? 'Brand Suite' : 'Creator Studio'}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -48,7 +79,7 @@ export function Sidebar() {
                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-4">
                     Menu
                 </div>
-                {mainNav.map((item) => {
+                {navItems.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                         <Link

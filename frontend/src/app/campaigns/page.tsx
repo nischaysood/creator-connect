@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { CampaignFlipCard } from "@/components/CampaignFlipCard";
 import { CampaignManager } from "@/components/CampaignManager";
@@ -23,9 +24,15 @@ export default function CampaignsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [mounted, setMounted] = useState(false);
 
+    const searchParams = useSearchParams();
+
     useEffect(() => {
         setMounted(true);
-    }, []);
+        const savedRole = localStorage.getItem("user-role") as "brand" | "creator" | null;
+        const queryRole = searchParams.get('role') as "brand" | "creator" | null;
+        if (queryRole) setRole(queryRole);
+        else if (savedRole) setRole(savedRole);
+    }, [searchParams]);
 
     const { writeContract, data: hash } = useWriteContract();
 
@@ -139,19 +146,15 @@ export default function CampaignsPage() {
                         <p className="text-gray-400 mt-1">Manage, track, and optimize your marketing efforts.</p>
                     </div>
                     <div className="flex gap-4">
-                        {/* Role Toggle for Demo ease */}
-                        <div className="flex bg-white/5 rounded-xl p-1 border border-white/5">
-                            <button onClick={() => setRole('brand')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${role === 'brand' ? 'bg-purple-600 text-white' : 'text-gray-400'}`}>Brand</button>
-                            <button onClick={() => setRole('creator')} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${role === 'creator' ? 'bg-purple-600 text-white' : 'text-gray-400'}`}>Creator</button>
-                        </div>
-
-                        <button
-                            onClick={() => setIsWizardOpen(true)}
-                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-lg shadow-white/10"
-                        >
-                            <Plus className="w-4 h-4" />
-                            New Campaign
-                        </button>
+                        {role === 'brand' && (
+                            <button
+                                onClick={() => setIsWizardOpen(true)}
+                                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-black font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-lg shadow-white/10"
+                            >
+                                <Plus className="w-4 h-4" />
+                                New Campaign
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -186,16 +189,18 @@ export default function CampaignsPage() {
                             />
                         ))}
 
-                        {/* Empty Slot Placeholder */}
-                        <button
-                            onClick={() => setIsWizardOpen(true)}
-                            className="group h-[340px] rounded-3xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:border-purple-500/50 hover:bg-white/5 transition-all min-h-[300px]"
-                        >
-                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                <Plus className="w-6 h-6 text-gray-500 group-hover:text-purple-400" />
-                            </div>
-                            <span className="font-bold text-gray-500 group-hover:text-white">Create New Campaign</span>
-                        </button>
+                        {/* Empty Slot Placeholder - Only for Brands */}
+                        {role === 'brand' && (
+                            <button
+                                onClick={() => setIsWizardOpen(true)}
+                                className="group h-[340px] rounded-3xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-4 hover:border-purple-500/50 hover:bg-white/5 transition-all min-h-[300px]"
+                            >
+                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Plus className="w-6 h-6 text-gray-500 group-hover:text-purple-400" />
+                                </div>
+                                <span className="font-bold text-gray-500 group-hover:text-white">Create New Campaign</span>
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

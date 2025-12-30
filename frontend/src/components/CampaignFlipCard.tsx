@@ -18,17 +18,19 @@ import {
     Mic2
 } from "lucide-react";
 import { formatEther } from "viem";
+import { cn } from "@/lib/utils";
 import SubmitWorkModal from "./SubmitWorkModal";
 
 interface CampaignFlipCardProps {
     id: number;
     campaign: any; // Raw contract struct
     role: "brand" | "creator";
+    isEnrolled?: boolean;
     onJoin: () => void;
     onSubmit: () => void;
 }
 
-export function CampaignFlipCard({ id, campaign, role, onJoin, onSubmit }: CampaignFlipCardProps) {
+export function CampaignFlipCard({ id, campaign, role, isEnrolled, onJoin, onSubmit }: CampaignFlipCardProps) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
 
@@ -36,6 +38,9 @@ export function CampaignFlipCard({ id, campaign, role, onJoin, onSubmit }: Campa
     const detailsRaw = campaign[2];
     const reward = campaign[3];
     const maxCreators = Number(campaign[4]);
+    const deadline = Number(campaign[9]);
+    const isExpired = deadline > 0 && Date.now() / 1000 > deadline;
+
     // TODO: We need a way to check if the CURRENT user has already enrolled in THIS campaign
     // For MVP, we might pass a "hasEnrolled" prop or assume if onSubmit is passed it's possible
     // But currently `onSubmit` is just a placeholder callback. 
@@ -65,6 +70,14 @@ export function CampaignFlipCard({ id, campaign, role, onJoin, onSubmit }: Campa
         "TikTok": Play
     }[meta.platform] || Instagram;
 
+    const accentColor = role === 'creator' ? 'cyan' : 'purple';
+    const accentClass = role === 'creator' ? 'from-cyan-500 to-blue-600' : 'from-purple-500 to-indigo-600';
+    const accentText = role === 'creator' ? 'text-cyan-400' : 'text-purple-400';
+    const accentBg = role === 'creator' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-purple-500/20 text-purple-400';
+    const accentBorder = role === 'creator' ? 'border-cyan-500/20' : 'border-purple-500/20';
+    const accentHover = role === 'creator' ? 'hover:shadow-cyan-500/25' : 'hover:shadow-purple-500/25';
+    const accentBtn = role === 'creator' ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-purple-600 hover:bg-purple-500';
+
     return (
         <>
             <div
@@ -87,7 +100,7 @@ export function CampaignFlipCard({ id, campaign, role, onJoin, onSubmit }: Campa
                         {/* Header */}
                         <div className="flex justify-between items-start">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg bg-gradient-to-br", accentClass)}>
                                     {meta.name.substring(0, 1).toUpperCase()}
                                 </div>
                                 <div>
@@ -95,9 +108,14 @@ export function CampaignFlipCard({ id, campaign, role, onJoin, onSubmit }: Campa
                                     <p className="text-xs text-gray-400">by Brand {campaign[1].toString().substring(0, 6)}...</p>
                                 </div>
                             </div>
-                            <div className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold border border-green-500/20 flex items-center gap-1">
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                Active
+                            <div className={cn(
+                                "px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1",
+                                isExpired
+                                    ? "bg-red-500/20 text-red-400 border-red-500/20"
+                                    : "bg-green-500/20 text-green-400 border-green-500/20"
+                            )}>
+                                <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", isExpired ? "bg-red-500" : "bg-green-500")}></span>
+                                {isExpired ? "Ended" : "Active"}
                             </div>
                         </div>
 
@@ -105,7 +123,7 @@ export function CampaignFlipCard({ id, campaign, role, onJoin, onSubmit }: Campa
                         <div className="py-2">
                             <div className="text-sm text-gray-400 uppercase tracking-widest font-bold">Reward</div>
                             <div className="text-4xl font-bold text-white font-outfit tracking-tight">
-                                {formatEther(reward)} <span className="text-xl text-purple-400">MNEE</span>
+                                {formatEther(reward)} <span className={cn("text-xl", accentText)}>MNEE</span>
                             </div>
                         </div>
 
@@ -124,17 +142,28 @@ export function CampaignFlipCard({ id, campaign, role, onJoin, onSubmit }: Campa
                                 </div>
                                 <span className="font-medium">AI Verified Content</span>
                             </div>
+
+                            <div className="flex items-center gap-2 text-sm text-gray-300">
+                                <div className="p-2 rounded-lg bg-white/5 text-yellow-500">
+                                    <Clock className="w-5 h-5" />
+                                </div>
+                                <span className="font-medium">
+                                    {isExpired ? "Campaign Ended" : `${Math.ceil((deadline - Date.now() / 1000) / 86400)} Days Left`}
+                                </span>
+                            </div>
                         </div>
 
                         {/* Hover Hint */}
-                        <div className="pt-4 border-t border-white/5 flex items-center justify-center text-xs font-bold text-gray-500 uppercase tracking-widest group-hover:text-purple-400 transition-colors">
+                        <div className={cn("pt-4 border-t border-white/5 flex items-center justify-center text-xs font-bold text-gray-500 uppercase tracking-widest transition-colors", role === 'creator' ? 'group-hover:text-cyan-400' : 'group-hover:text-purple-400')}>
                             Hover for Details
                         </div>
                     </div>
 
                     {/* === BACK OF CARD === */}
                     <div
-                        className="absolute inset-0 rounded-3xl p-5 bg-[#0e0e1b] border border-purple-500/30 flex flex-col shadow-[0_0_30px_-5px_rgba(139,92,246,0.2)]"
+                        className={cn("absolute inset-0 rounded-3xl p-5 bg-[#0e0e1b] border flex flex-col shadow-xl",
+                            role === 'creator' ? 'border-cyan-500/30' : 'border-purple-500/30'
+                        )}
                         style={{
                             transform: "rotateY(180deg)",
                             backfaceVisibility: "hidden"
@@ -143,7 +172,7 @@ export function CampaignFlipCard({ id, campaign, role, onJoin, onSubmit }: Campa
                         {/* Back Header */}
                         <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
                             <h4 className="text-sm font-bold text-white uppercase tracking-widest">Campaign Brief</h4>
-                            <div className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-bold border border-purple-500/20">
+                            <div className={cn("px-2 py-0.5 rounded text-[10px] font-bold border", accentBg, accentBorder)}>
                                 STRICT
                             </div>
                         </div>
@@ -191,14 +220,20 @@ export function CampaignFlipCard({ id, campaign, role, onJoin, onSubmit }: Campa
                             {role === 'creator' ? (
                                 <>
                                     <button
+                                        disabled={isEnrolled || isExpired}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             onJoin();
                                         }}
-                                        className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm transition-all shadow-lg hover:shadow-purple-500/25 flex items-center justify-center gap-2"
+                                        className={cn(
+                                            "w-full py-2.5 rounded-xl text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2",
+                                            (isEnrolled || isExpired)
+                                                ? "bg-slate-700 cursor-not-allowed opacity-50"
+                                                : cn(accentBtn, accentHover)
+                                        )}
                                     >
-                                        <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                                        Apply Now
+                                        <div className={cn("w-2 h-2 rounded-full bg-white", (!isEnrolled && !isExpired) && "animate-pulse")} />
+                                        {isEnrolled ? "Already Applied" : isExpired ? "Deadline Passed" : "Apply Now"}
                                     </button>
                                     <button
                                         onClick={(e) => {
