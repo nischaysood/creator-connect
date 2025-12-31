@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -31,6 +31,7 @@ const bottomNav = [
 
 export function Sidebar() {
     const pathname = usePathname();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const [role, setRole] = useState<"brand" | "creator">("brand");
 
@@ -126,7 +127,13 @@ export function Sidebar() {
                         </Link>
                     );
                 })}
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-muted-foreground hover:bg-red-500/10 hover:text-red-400 mt-4 group">
+                <button
+                    onClick={() => {
+                        localStorage.removeItem("user-role");
+                        router.push("/");
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-muted-foreground hover:bg-red-500/10 hover:text-red-400 mt-4 group"
+                >
                     <LogOut className="w-5 h-5 group-hover:text-red-400" />
                     <span className="font-medium text-sm">Logout</span>
                 </button>

@@ -16,7 +16,8 @@ import {
 } from "wagmi";
 import { ESCROW_ADDRESS, ESCROW_ABI } from "@/constants";
 
-export default function CampaignsPage() {
+// Extract main logic to a separate component
+function CampaignsContent() {
     const { address } = useAccount();
     const [isWizardOpen, setIsWizardOpen] = useState(false);
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
@@ -48,7 +49,7 @@ export default function CampaignsPage() {
     // 2. Fetch ALL campaigns
     const { data: campaignsData, isLoading: isLoadingCampaigns, refetch: refetchCampaigns } = useReadContracts({
         contracts: Array.from({ length: numCampaigns }, (_, i) => ({
-            address: ESCROW_ADDRESS,
+            address: ESCROW_ADDRESS as `0x${string}`,
             abi: ESCROW_ABI,
             functionName: "campaigns",
             args: [BigInt(i)],
@@ -205,5 +206,15 @@ export default function CampaignsPage() {
                 )}
             </div>
         </DashboardLayout>
+    );
+}
+
+import { Suspense } from "react";
+
+export default function CampaignsPage() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-purple-500" /></div>}>
+            <CampaignsContent />
+        </Suspense>
     );
 }
