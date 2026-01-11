@@ -6,33 +6,33 @@ import {
     Instagram,
     Twitter,
     Youtube,
-    Music2,
-    Hash,
     Clock,
     Users,
-    CheckCircle2,
-    ArrowRight,
     Play,
     ShieldCheck,
     FileVideo,
-    Mic2
+    Mic2,
+    Zap,
+    ArrowRight,
+    ExternalLink
 } from "lucide-react";
 import { formatEther } from "viem";
 import { cn } from "@/lib/utils";
 import SubmitWorkModal from "./SubmitWorkModal";
+import { calculateMatchScore, getMatchColor } from "@/lib/matchingEngine";
 
-interface CampaignFlipCardProps {
+interface CampaignCardProps {
     id: number;
-    campaign: any; // Raw contract struct
+    campaign: any;
     role: "brand" | "creator";
     isEnrolled?: boolean;
     onJoin: () => void;
     onSubmit: () => void;
 }
 
-export function CampaignFlipCard({ id, campaign, role, isEnrolled, onJoin, onSubmit }: CampaignFlipCardProps) {
-    const [isFlipped, setIsFlipped] = useState(false);
+export function CampaignCard({ id, campaign, role, isEnrolled, onJoin, onSubmit }: CampaignCardProps) {
     const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
 
     // Destructure contract data
     const detailsRaw = campaign[2];
@@ -41,11 +41,7 @@ export function CampaignFlipCard({ id, campaign, role, isEnrolled, onJoin, onSub
     const deadline = Number(campaign[9]);
     const isExpired = deadline > 0 && Date.now() / 1000 > deadline;
 
-    // TODO: We need a way to check if the CURRENT user has already enrolled in THIS campaign
-    // For MVP, we might pass a "hasEnrolled" prop or assume if onSubmit is passed it's possible
-    // But currently `onSubmit` is just a placeholder callback. 
-
-    // Start with default values, try to parse JSON
+    // Parse metadata
     let meta = {
         name: "Campaign #" + id,
         desc: "Create content for this brand.",
@@ -58,7 +54,6 @@ export function CampaignFlipCard({ id, campaign, role, isEnrolled, onJoin, onSub
         const parsed = JSON.parse(detailsRaw);
         if (parsed.name) meta = parsed;
     } catch (e) {
-        // Fallback for old text-only campaigns
         meta.name = detailsRaw || `Campaign #${id}`;
         meta.desc = detailsRaw;
     }
@@ -70,197 +65,191 @@ export function CampaignFlipCard({ id, campaign, role, isEnrolled, onJoin, onSub
         "TikTok": Play
     }[meta.platform] || Instagram;
 
-    const accentColor = role === 'creator' ? 'cyan' : 'purple';
     const accentClass = role === 'creator' ? 'from-cyan-500 to-blue-600' : 'from-purple-500 to-indigo-600';
     const accentText = role === 'creator' ? 'text-cyan-400' : 'text-purple-400';
     const accentBg = role === 'creator' ? 'bg-cyan-500/20 text-cyan-400' : 'bg-purple-500/20 text-purple-400';
-    const accentBorder = role === 'creator' ? 'border-cyan-500/20' : 'border-purple-500/20';
-    const accentHover = role === 'creator' ? 'hover:shadow-cyan-500/25' : 'hover:shadow-purple-500/25';
+    const accentBorder = role === 'creator' ? 'border-cyan-500/30' : 'border-purple-500/30';
+    const accentGlow = role === 'creator' ? 'shadow-cyan-500/20' : 'shadow-purple-500/20';
     const accentBtn = role === 'creator' ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-purple-600 hover:bg-purple-500';
+
+    const daysLeft = deadline > 0 ? Math.max(0, Math.ceil((deadline - Date.now() / 1000) / 86400)) : 0;
 
     return (
         <>
-            <div
-                className="group h-[340px] w-full perspective-1000 cursor-pointer"
-                onMouseEnter={() => setIsFlipped(true)}
-                onMouseLeave={() => setIsFlipped(false)}
+            <motion.div
+                className={cn(
+                    "relative w-full rounded-3xl p-6 bg-gradient-to-br from-white/[0.08] to-white/[0.02] border backdrop-blur-xl flex flex-col justify-between transition-all duration-300 cursor-pointer overflow-hidden",
+                    isHovered ? cn("border-opacity-100 shadow-2xl", accentBorder, accentGlow) : "border-white/10 shadow-lg"
+                )}
+                style={{ minHeight: "380px" }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                whileHover={{
+                    y: -8,
+                    scale: 1.02,
+                    transition: { duration: 0.3, ease: "easeOut" }
+                }}
             >
+                {/* Ambient Glow Effect */}
                 <motion.div
-                    className="relative w-full h-full transition-all duration-500"
-                    style={{ transformStyle: "preserve-3d" }}
-                    animate={{ rotateY: isFlipped ? 180 : 0 }}
-                    transition={{ duration: 0.6, type: "spring", stiffness: 260, damping: 20 }}
-                >
-                    {/* === FRONT OF CARD === */}
-                    <div
-                        className="absolute inset-0 rounded-3xl p-6 bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md flex flex-col justify-between shadow-xl"
-                        style={{ backfaceVisibility: "hidden" }}
-                    >
+                    className={cn(
+                        "absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl pointer-events-none transition-opacity duration-500",
+                        role === 'creator' ? 'bg-cyan-500/30' : 'bg-purple-500/30'
+                    )}
+                    animate={{ opacity: isHovered ? 1 : 0 }}
+                />
+                <motion.div
+                    className={cn(
+                        "absolute -bottom-10 -left-10 w-32 h-32 rounded-full blur-2xl pointer-events-none transition-opacity duration-500",
+                        role === 'creator' ? 'bg-blue-500/20' : 'bg-indigo-500/20'
+                    )}
+                    animate={{ opacity: isHovered ? 0.8 : 0 }}
+                />
 
-                        {/* Header */}
-                        <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-3">
-                                <div className={cn("w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg bg-gradient-to-br", accentClass)}>
-                                    {meta.name.substring(0, 1).toUpperCase()}
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-white text-lg leading-tight line-clamp-1">{meta.name}</h3>
-                                    <p className="text-xs text-gray-400">by Brand {campaign[1].toString().substring(0, 6)}...</p>
-                                </div>
-                            </div>
-                            <div className={cn(
-                                "px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1",
-                                isExpired
-                                    ? "bg-red-500/20 text-red-400 border-red-500/20"
-                                    : "bg-green-500/20 text-green-400 border-green-500/20"
-                            )}>
-                                <span className={cn("w-1.5 h-1.5 rounded-full animate-pulse", isExpired ? "bg-red-500" : "bg-green-500")}></span>
-                                {isExpired ? "Ended" : "Active"}
+                {/* Header */}
+                <div className="relative z-10">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                            <motion.div
+                                className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg bg-gradient-to-br", accentClass)}
+                                whileHover={{ rotate: [0, -5, 5, 0], transition: { duration: 0.5 } }}
+                            >
+                                {meta.name.substring(0, 1).toUpperCase()}
+                            </motion.div>
+                            <div>
+                                <h3 className="font-bold text-white text-lg leading-tight line-clamp-1">{meta.name}</h3>
+                                <p className="text-xs text-gray-400">by Brand {campaign[1].toString().substring(0, 6)}...</p>
                             </div>
                         </div>
-
-                        {/* Reward - Big & Bold */}
-                        <div className="py-2">
-                            <div className="text-sm text-gray-400 uppercase tracking-widest font-bold">Reward</div>
-                            <div className="text-4xl font-bold text-white font-outfit tracking-tight">
-                                {formatEther(reward)} <span className={cn("text-xl", accentText)}>MNEE</span>
-                            </div>
-                        </div>
-
-                        {/* Requirements Summary */}
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <div className="p-2 rounded-lg bg-white/5 text-pink-500">
-                                    <PlatformIcon className="w-5 h-5" />
-                                </div>
-                                <span className="font-medium">{meta.platform} • {meta.type}</span>
-                            </div>
-
-                            <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <div className="p-2 rounded-lg bg-white/5 text-blue-400">
-                                    <ShieldCheck className="w-5 h-5" />
-                                </div>
-                                <span className="font-medium">AI Verified Content</span>
-                            </div>
-
-                            <div className="flex items-center gap-2 text-sm text-gray-300">
-                                <div className="p-2 rounded-lg bg-white/5 text-yellow-500">
-                                    <Clock className="w-5 h-5" />
-                                </div>
-                                <span className="font-medium">
-                                    {isExpired ? "Campaign Ended" : `${Math.ceil((deadline - Date.now() / 1000) / 86400)} Days Left`}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Hover Hint */}
-                        <div className={cn("pt-4 border-t border-white/5 flex items-center justify-center text-xs font-bold text-gray-500 uppercase tracking-widest transition-colors", role === 'creator' ? 'group-hover:text-cyan-400' : 'group-hover:text-purple-400')}>
-                            Hover for Details
+                        <div className={cn(
+                            "px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 backdrop-blur-sm",
+                            isExpired
+                                ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                        )}>
+                            <span className={cn("w-1.5 h-1.5 rounded-full", isExpired ? "bg-red-500" : "bg-emerald-500 animate-pulse")} />
+                            {isExpired ? "Ended" : "Active"}
                         </div>
                     </div>
 
-                    {/* === BACK OF CARD === */}
-                    <div
-                        className={cn("absolute inset-0 rounded-3xl p-5 bg-[#0e0e1b] border flex flex-col shadow-xl",
-                            role === 'creator' ? 'border-cyan-500/30' : 'border-purple-500/30'
-                        )}
-                        style={{
-                            transform: "rotateY(180deg)",
-                            backfaceVisibility: "hidden"
-                        }}
-                    >
-                        {/* Back Header */}
-                        <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
-                            <h4 className="text-sm font-bold text-white uppercase tracking-widest">Campaign Brief</h4>
-                            <div className={cn("px-2 py-0.5 rounded text-[10px] font-bold border", accentBg, accentBorder)}>
-                                STRICT
+                    {/* AI Match Score (Creator only) */}
+                    {role === 'creator' && (
+                        <motion.div
+                            className="mb-4"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 }}
+                        >
+                            <div className={cn(
+                                "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border backdrop-blur-sm",
+                                getMatchColor(calculateMatchScore(campaign, []))
+                            )}>
+                                <Zap className="w-3.5 h-3.5" />
+                                {calculateMatchScore(campaign, [])}% Match
                             </div>
-                        </div>
+                        </motion.div>
+                    )}
 
-                        {/* Description - Scrollable if long */}
-                        <div className="flex-1 overflow-hidden relative mb-4">
-                            <div className="text-xs text-gray-300 leading-relaxed font-light h-full overflow-y-auto pr-1">
-                                <p className="mb-2 font-medium text-white">{meta.desc}</p>
-                                <p className="opacity-80">Follow all brand guidelines. Ensure high quality video and clear audio. Verification by AI Agent required for payout.</p>
-                            </div>
-                            {/* Fade at bottom */}
-                            <div className="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-[#0e0e1b] to-transparent pointer-events-none"></div>
+                    {/* Reward */}
+                    <div className="mb-4">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Reward per Creator</div>
+                        <div className="text-3xl font-bold text-white font-outfit tracking-tight">
+                            {formatEther(reward)} <span className={cn("text-lg", accentText)}>MNEE</span>
                         </div>
+                    </div>
+                </div>
 
-                        {/* Detailed Specs Grid */}
-                        <div className="grid grid-cols-2 gap-2 mb-4">
-                            <div className="bg-white/5 rounded-lg p-2 flex flex-col gap-1">
-                                <div className="flex items-center gap-1.5 text-[10px] text-gray-400 uppercase font-bold">
-                                    <FileVideo className="w-3 h-3 text-pink-500" /> Format
-                                </div>
-                                <div className="text-xs text-white">9:16 Vertical</div>
-                            </div>
-                            <div className="bg-white/5 rounded-lg p-2 flex flex-col gap-1">
-                                <div className="flex items-center gap-1.5 text-[10px] text-gray-400 uppercase font-bold">
-                                    <Clock className="w-3 h-3 text-blue-500" /> Duration
-                                </div>
-                                <div className="text-xs text-white">Min 15s</div>
-                            </div>
-                            <div className="bg-white/5 rounded-lg p-2 flex flex-col gap-1">
-                                <div className="flex items-center gap-1.5 text-[10px] text-gray-400 uppercase font-bold">
-                                    <Mic2 className="w-3 h-3 text-yellow-500" /> Audio
-                                </div>
-                                <div className="text-xs text-white">Trending</div>
-                            </div>
-                            <div className="bg-white/5 rounded-lg p-2 flex flex-col gap-1">
-                                <div className="flex items-center gap-1.5 text-[10px] text-gray-400 uppercase font-bold">
-                                    <Users className="w-3 h-3 text-green-500" /> Spots
-                                </div>
-                                <div className="text-xs text-white">8 / {maxCreators} Left</div>
-                            </div>
+                {/* Quick Stats */}
+                <div className="relative z-10 grid grid-cols-3 gap-2 mb-4">
+                    <div className="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase font-bold mb-1">
+                            <PlatformIcon className="w-3 h-3 text-pink-400" />
+                            Platform
                         </div>
+                        <div className="text-xs text-white font-medium">{meta.platform}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase font-bold mb-1">
+                            <Users className="w-3 h-3 text-green-400" />
+                            Spots
+                        </div>
+                        <div className="text-xs text-white font-medium">{maxCreators} max</div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 uppercase font-bold mb-1">
+                            <Clock className="w-3 h-3 text-yellow-400" />
+                            Time
+                        </div>
+                        <div className="text-xs text-white font-medium">{isExpired ? "Ended" : `${daysLeft}d left`}</div>
+                    </div>
+                </div>
 
-                        {/* CTA Buttons */}
-                        <div className="flex flex-col gap-2">
-                            {role === 'creator' ? (
-                                <>
-                                    <button
-                                        disabled={isEnrolled || isExpired}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onJoin();
-                                        }}
-                                        className={cn(
-                                            "w-full py-2.5 rounded-xl text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2",
-                                            (isEnrolled || isExpired)
-                                                ? "bg-slate-700 cursor-not-allowed opacity-50"
-                                                : cn(accentBtn, accentHover)
-                                        )}
-                                    >
-                                        <div className={cn("w-2 h-2 rounded-full bg-white", (!isEnrolled && !isExpired) && "animate-pulse")} />
-                                        {isEnrolled ? "Already Applied" : isExpired ? "Deadline Passed" : "Apply Now"}
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setIsSubmitModalOpen(true);
-                                        }}
-                                        className="w-full py-2 rounded-xl border border-white/10 hover:bg-white/10 text-xs font-semibold text-gray-300 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        Submitted Content? Click Here
-                                    </button>
-                                </>
-                            ) : (
+                {/* Tags */}
+                <div className="relative z-10 flex flex-wrap gap-1.5 mb-4">
+                    <span className="px-2 py-0.5 rounded-md bg-white/5 text-[10px] text-gray-400 font-medium border border-white/5">
+                        <ShieldCheck className="w-3 h-3 inline mr-1 text-blue-400" />AI Verified
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-white/5 text-[10px] text-gray-400 font-medium border border-white/5">
+                        <FileVideo className="w-3 h-3 inline mr-1 text-purple-400" />{meta.type}
+                    </span>
+                </div>
+
+                {/* CTA */}
+                <div className="relative z-10 flex flex-col gap-2">
+                    {role === 'creator' ? (
+                        <>
+                            <motion.button
+                                disabled={isEnrolled || isExpired}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onJoin();
+                                }}
+                                className={cn(
+                                    "w-full py-3 rounded-xl text-white font-bold text-sm transition-all flex items-center justify-center gap-2",
+                                    (isEnrolled || isExpired)
+                                        ? "bg-slate-700/50 cursor-not-allowed opacity-50"
+                                        : cn(accentBtn, "shadow-lg", isHovered && accentGlow)
+                                )}
+                                whileHover={!isEnrolled && !isExpired ? { scale: 1.02 } : {}}
+                                whileTap={!isEnrolled && !isExpired ? { scale: 0.98 } : {}}
+                            >
+                                {isEnrolled ? "Already Applied" : isExpired ? "Deadline Passed" : (
+                                    <>
+                                        <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                        Apply Now
+                                        <ArrowRight className="w-4 h-4" />
+                                    </>
+                                )}
+                            </motion.button>
+                            {isEnrolled && (
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        onJoin(); // In brand mode, this opens the manager
+                                        setIsSubmitModalOpen(true);
                                     }}
-                                    className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all shadow-lg hover:shadow-blue-500/25 flex items-center justify-center gap-2"
+                                    className="w-full py-2 rounded-xl border border-white/10 hover:bg-white/5 text-xs font-medium text-gray-400 hover:text-white transition-all flex items-center justify-center gap-2"
                                 >
-                                    Manage Campaign
-                                    <ArrowRight className="w-4 h-4" />
+                                    <ExternalLink className="w-3 h-3" />
+                                    Submit Work
                                 </button>
                             )}
-                        </div>
-                    </div>
-                </motion.div>
-            </div>
+                        </>
+                    ) : (
+                        <motion.button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onJoin();
+                            }}
+                            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            Manage Campaign
+                            <ArrowRight className="w-4 h-4" />
+                        </motion.button>
+                    )}
+                </div>
+            </motion.div>
 
             {isSubmitModalOpen && (
                 <SubmitWorkModal
@@ -273,3 +262,6 @@ export function CampaignFlipCard({ id, campaign, role, isEnrolled, onJoin, onSub
         </>
     );
 }
+
+// Keep the old name as an alias for backwards compatibility
+export { CampaignCard as CampaignFlipCard };

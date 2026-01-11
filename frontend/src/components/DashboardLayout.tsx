@@ -1,7 +1,7 @@
 "use client";
 
 import { Sidebar } from "./Sidebar";
-import { Header } from "./Header";
+
 import { motion, AnimatePresence } from "framer-motion";
 
 import { Suspense } from "react";
@@ -14,7 +14,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <Sidebar />
             </Suspense>
             <div className="pl-64 flex flex-col min-h-screen">
-                <Header />
                 <main className="flex-1 p-8">
                     <AnimatePresence mode="wait">
                         <motion.div

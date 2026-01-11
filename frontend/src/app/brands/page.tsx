@@ -8,74 +8,6 @@ import { useReadContract, useReadContracts } from "wagmi";
 import { ESCROW_ADDRESS, ESCROW_ABI } from "@/constants";
 
 // Mock Data for Brands
-const MOCK_BRANDS = [
-    {
-        id: "b1",
-        name: "EcoTrend",
-        logo: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=100&h=100",
-        mission: "Sustainable fashion for the conscious consumer. Join us in making the world greener.",
-        location: "Stockholm, SE",
-        website: "ecotrend.com",
-        activeCampaigns: 4,
-        verified: true,
-        category: "Fashion"
-    },
-    {
-        id: "b2",
-        name: "VoltEnergy",
-        logo: "https://images.unsplash.com/photo-1560523160-754a9e25c68f?auto=format&fit=crop&q=80&w=100&h=100",
-        mission: "Clean energy solutions for a sustainable future. Empowering communities worldwide.",
-        location: "Berlin, DE",
-        website: "voltenergy.io",
-        activeCampaigns: 2,
-        verified: true,
-        category: "Tech"
-    },
-    {
-        id: "b3",
-        name: "PureHydrate",
-        logo: "https://images.unsplash.com/photo-1548919973-5dea594ca2c4?auto=format&fit=crop&q=80&w=100&h=100",
-        mission: "Performance hydration for professional athletes. Science-backed recovery.",
-        location: "Los Angeles, US",
-        website: "purehydrate.fit",
-        activeCampaigns: 7,
-        verified: false,
-        category: "Health"
-    },
-    {
-        id: "b4",
-        name: "MetaGlow",
-        logo: "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&q=80&w=100&h=100",
-        mission: "Next-gen skincare using advanced AI analysis. Beauty meets precision.",
-        location: "Seoul, KR",
-        website: "metaglow.ai",
-        activeCampaigns: 3,
-        verified: true,
-        category: "Beauty"
-    },
-    {
-        id: "b5",
-        name: "GameNexus",
-        logo: "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80&w=100&h=100",
-        mission: "Building the ultimate ecosystem for competitive gamers. Join the Nexus.",
-        location: "Seattle, US",
-        website: "gamenexus.gg",
-        activeCampaigns: 12,
-        verified: true,
-        category: "Gaming"
-    },
-    {
-        id: "b6",
-        name: "BrewMaster",
-        logo: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?auto=format&fit=crop&q=80&w=100&h=100",
-        mission: "Artisan coffee roasted in small batches. From farm to cup with love.",
-        location: "Portland, US",
-        website: "brewmaster.coffee",
-        activeCampaigns: 1,
-        verified: false,
-        category: "Food"
-    }
-];
 
 export default function BrandsPage() {
     const [searchTerm, setSearchTerm] = useState("");
@@ -107,14 +39,14 @@ export default function BrandsPage() {
         .filter((p: any) => p && (p.exists || p[5]) && (p.role === "brand" || p[4] === "brand"))
         .map((p: any) => ({
             id: p.wallet || p[0],
-            name: p.name || p[1],
+            name: p.name || p[1] || "Unknown Brand",
             logo: p.avatar || p[3],
-            mission: p.bio || p[2],
+            mission: p.bio || p[2] || "No mission statement.",
             location: "On-Chain",
-            website: "verified.eth",
+            website: "",
             activeCampaigns: 0,
-            verified: true,
-            category: "Verified Brand"
+            verified: true, // Assuming on-chain profiles are verified by default logic or add a check
+            category: "Brand"
         }));
 
     if (!mounted) return null;

@@ -14,6 +14,7 @@ import {
     QueryClientProvider,
     QueryClient,
 } from "@tanstack/react-query";
+import { AutoFaucet } from './AutoFaucet';
 
 import '@rainbow-me/rainbowkit/styles.css';
 
@@ -37,6 +38,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
                     fontStack: 'system',
                     overlayBlur: 'small',
                 })}>
+                    <AutoFaucet />
                     {children}
                 </RainbowKitProvider>
             </QueryClientProvider>

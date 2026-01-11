@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Link as LinkIcon, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { ESCROW_ABI, ESCROW_ADDRESS } from "@/constants";
+import { useToast } from "@/components/ToastProvider";
 
 interface SubmitWorkModalProps {
     isOpen: boolean;
@@ -16,12 +17,25 @@ interface SubmitWorkModalProps {
 export default function SubmitWorkModal({ isOpen, onClose, campaignId, campaignTitle }: SubmitWorkModalProps) {
     const [url, setUrl] = useState("");
     const [error, setError] = useState("");
+    const { showToast } = useToast();
 
     const { data: hash, isPending: isWritePending, writeContract } = useWriteContract();
 
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
         hash,
     });
+
+    // Show toast when submission is successful
+    useEffect(() => {
+        if (isSuccess) {
+            showToast({
+                type: 'success',
+                title: '🎉 Work Submitted!',
+                message: `Your content for "${campaignTitle}" has been submitted. The brand will be notified!`,
+                duration: 6000
+            });
+        }
+    }, [isSuccess, campaignTitle, showToast]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

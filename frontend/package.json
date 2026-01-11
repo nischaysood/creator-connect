@@ -13,6 +13,7 @@
     "@fontsource/inter": "^5.2.8",
     "@fontsource/outfit": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
+    "@google/generative-ai": "^0.24.1",
     "@metamask/sdk": "^0.34.0",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@safe-global/safe-apps-provider": "^0.18.6",

@@ -41,16 +41,18 @@ export default function CreatorsPage() {
 
             return {
                 id: wallet,
-                name: name,
+                name: name || "Unknown Creator",
                 handle: name ? name.toLowerCase().replace(/\s+/g, '_') : 'user',
                 avatar: avatar,
-                category: bio,
-                followers: "Verified",
-                engagement: "Real-time",
-                aiScore: 95,
-                verified: true,
-                niche: [bio],
-                platform: "YouTube" as const,
+                category: bio || "General",
+                verified: p.role === "creator" || p[4] === "creator", // Check role for verification
+                // Remove hardcoded engagement data to avoid misleading "demo" look. 
+                // Alternatively, can set to null or 0.
+                followers: "0",
+                engagement: "0%",
+                aiScore: 0,
+                niche: bio ? [bio] : [],
+                platform: "YouTube" as const, // Default platform
                 imageUrl: avatar
             };
         });

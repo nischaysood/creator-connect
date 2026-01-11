@@ -27,12 +27,18 @@ async function main() {
     console.log("   ✅ MockMNEE Deployed at:    ", mneeAddress);
 
     // 2. Deploy Escrow
-    const agentAddress = deployer.address; // For simplicity in test, deployer is also agent
+    const agentAddress = deployer.address;
     const Escrow = await ethers.getContractFactory("CreatorConnectEscrow");
     const escrow = await Escrow.deploy(mneeAddress, agentAddress);
     await escrow.waitForDeployment();
     const escrowAddress = await escrow.getAddress();
-    console.log("   ✅ Escrow Deployed at:      ", escrowAddress);
+
+    // LOG IMMEDIATELY
+    console.log("-------------------------------------------------");
+    console.log("!!! DEPLOYMENT DETAILS (SAVE THESE) !!!");
+    console.log(`MOCK_MNEE: ${mneeAddress}`);
+    console.log(`ESCROW:    ${escrowAddress}`);
+    console.log("-------------------------------------------------");
 
     console.log("\n-------------------------------------------------");
     console.log("💰 Minting Test Tokens...");

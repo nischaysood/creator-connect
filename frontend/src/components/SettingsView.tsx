@@ -80,6 +80,28 @@ export function SettingsView() {
 // --- Sub-components ---
 
 function ProfileSettings() {
+    const [name, setName] = useState("John Doe");
+    const [username, setUsername] = useState("@johndoe_eth");
+    const [bio, setBio] = useState("Building the future of content creation on Web3.");
+    const [isSaved, setIsSaved] = useState(false);
+
+    React.useEffect(() => {
+        const savedProfile = localStorage.getItem("user-profile");
+        if (savedProfile) {
+            const parsed = JSON.parse(savedProfile);
+            setName(parsed.name || "John Doe");
+            setUsername(parsed.username || "@johndoe_eth");
+            setBio(parsed.bio || "Building the future of content creation on Web3.");
+        }
+    }, []);
+
+    const handleSave = () => {
+        const profile = { name, username, bio };
+        localStorage.setItem("user-profile", JSON.stringify(profile));
+        setIsSaved(true);
+        setTimeout(() => setIsSaved(false), 3000);
+    };
+
     return (
         <div className="space-y-8">
             <div>
@@ -90,7 +112,7 @@ function ProfileSettings() {
             <div className="flex items-center gap-6">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px]">
                     <div className="w-full h-full rounded-full bg-[#0B0B15] flex items-center justify-center text-3xl font-bold text-white uppercase">
-                        JD
+                        {name.charAt(0)}
                     </div>
                 </div>
                 <div>
@@ -104,20 +126,39 @@ function ProfileSettings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Display Name</label>
-                    <input type="text" defaultValue="John Doe" className="w-full px-4 py-3 rounded-xl bg-[#0B0B15] border border-white/10 text-white focus:outline-none focus:border-purple-500 transition-colors" />
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-[#0B0B15] border border-white/10 text-white focus:outline-none focus:border-purple-500 transition-colors"
+                    />
                 </div>
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Username</label>
-                    <input type="text" defaultValue="@johndoe_eth" className="w-full px-4 py-3 rounded-xl bg-[#0B0B15] border border-white/10 text-white focus:outline-none focus:border-purple-500 transition-colors" />
+                    <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-[#0B0B15] border border-white/10 text-white focus:outline-none focus:border-purple-500 transition-colors"
+                    />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                     <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Bio</label>
-                    <textarea defaultValue="Building the future of content creation on Web3." rows={4} className="w-full px-4 py-3 rounded-xl bg-[#0B0B15] border border-white/10 text-white focus:outline-none focus:border-purple-500 transition-colors resize-none" />
+                    <textarea
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        rows={4}
+                        className="w-full px-4 py-3 rounded-xl bg-[#0B0B15] border border-white/10 text-white focus:outline-none focus:border-purple-500 transition-colors resize-none"
+                    />
                 </div>
             </div>
 
-            <div className="pt-4 border-t border-white/5 flex justify-end">
-                <button className="px-6 py-2.5 rounded-xl bg-white text-black font-bold text-sm hover:bg-purple-100 transition-colors">
+            <div className="pt-4 border-t border-white/5 flex justify-end items-center gap-4">
+                {isSaved && <span className="text-green-400 text-sm font-bold animate-pulse">Changes Saved!</span>}
+                <button
+                    onClick={handleSave}
+                    className="px-6 py-2.5 rounded-xl bg-white text-black font-bold text-sm hover:bg-purple-100 transition-colors shadow-lg shadow-white/10"
+                >
                     Save Changes
                 </button>
             </div>

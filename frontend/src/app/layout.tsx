@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit, Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from "@/components/Web3Provider";
+import { ToastProvider } from "@/components/ToastProvider";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -34,7 +35,9 @@ export default function RootLayout({
         className={`${outfit.variable} ${inter.variable} ${spaceMono.variable} antialiased`}
       >
         <Web3Provider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </Web3Provider>
       </body>
     </html>

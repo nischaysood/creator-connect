@@ -66,6 +66,8 @@ export function OnboardingModal({ role, onSuccess }: OnboardingModalProps) {
             abi: ESCROW_ABI,
             functionName: "registerProfile",
             args: [name, bio, avatar, role],
+            // Hardhat local node gas estimation can be flaky, forcing a limit helps
+            gas: BigInt(500000),
         });
     };
 

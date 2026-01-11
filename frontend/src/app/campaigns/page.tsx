@@ -42,6 +42,9 @@ function CampaignsContent() {
         address: ESCROW_ADDRESS,
         abi: ESCROW_ABI,
         functionName: "nextCampaignId",
+        query: {
+            refetchInterval: 2000,
+        }
     });
 
     const numCampaigns = Number(campaignCount || 0);
@@ -53,7 +56,10 @@ function CampaignsContent() {
             abi: ESCROW_ABI,
             functionName: "campaigns",
             args: [BigInt(i)],
-        }))
+        })),
+        query: {
+            refetchInterval: 2000,
+        }
     });
 
     const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });

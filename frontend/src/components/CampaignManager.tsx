@@ -12,6 +12,7 @@ import {
     Search,
     Loader2
 } from "lucide-react";
+import { EscrowProgress } from "./EscrowProgress";
 import { formatEther } from "viem";
 import { cn } from "@/lib/utils";
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
@@ -21,6 +22,91 @@ interface CampaignManagerProps {
     id: number;
     campaign: any;
     onClose: () => void;
+}
+
+// Component to show submission history for a specific campaign
+function CampaignSubmissionHistory({ campaignId }: { campaignId: number }) {
+    const [submissions, setSubmissions] = React.useState<any[]>([]);
+
+    React.useEffect(() => {
+        try {
+            const allHistory = JSON.parse(localStorage.getItem('submission-history') || '[]');
+            const campaignSubs = allHistory.filter((s: any) => s.campaignId === campaignId);
+            setSubmissions(campaignSubs);
+        } catch { }
+    }, [campaignId]);
+
+    if (submissions.length === 0) {
+        return (
+            <div className="p-8 text-center border border-dashed border-white/10 rounded-2xl">
+                <Clock className="w-8 h-8 mx-auto mb-2 text-gray-500 opacity-50" />
+                <p className="text-gray-400 text-sm">No AI verifications yet for this campaign.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            {submissions.map((sub, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${sub.verified ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                                }`}>
+                                {sub.verified ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+                            </div>
+                            <div>
+                                <div className="font-mono text-white text-sm">{sub.creatorAddress?.slice(0, 8)}...{sub.creatorAddress?.slice(-6)}</div>
+                                <div className="text-xs text-gray-500">{new Date(sub.timestamp).toLocaleString()}</div>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <div className={`text-xl font-bold ${sub.score >= 60 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {sub.score}%
+                            </div>
+                            <div className="text-[10px] text-gray-500 uppercase">Match</div>
+                        </div>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-white/5 space-y-2">
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="text-gray-500">URL:</span>
+                            <a href={sub.url} target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline truncate">
+                                {sub.url}
+                            </a>
+                        </div>
+                        <div className="text-xs text-gray-400">{sub.reason}</div>
+
+                        {sub.matchedRequirements?.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                                {sub.matchedRequirements.map((req: string, i: number) => (
+                                    <span key={i} className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full text-[10px]">
+                                        ✓ {req}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                        {sub.missedRequirements?.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                                {sub.missedRequirements.map((req: string, i: number) => (
+                                    <span key={i} className="px-2 py-0.5 bg-red-500/10 text-red-400 rounded-full text-[10px]">
+                                        ✗ {req}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-2 pt-2 border-t border-white/5 flex justify-between text-[10px] text-gray-500">
+                        <span>{sub.platform} • {sub.contentType}</span>
+                        <span className={sub.verified ? 'text-emerald-400' : 'text-red-400'}>
+                            {sub.verified ? '💰 Paid' : '❌ Rejected'}
+                        </span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 }
 
 export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps) {
@@ -33,6 +119,9 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
         abi: ESCROW_ABI,
         functionName: "getCampaignEnrollments",
         args: [BigInt(id)],
+        query: {
+            refetchInterval: 2000,
+        }
     });
 
     const { writeContract, data: hash, isPending } = useWriteContract();
@@ -119,6 +208,18 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
                 {/* CONTENT */}
                 <div className="flex-1 overflow-y-auto p-8">
 
+                    {/* Escrow Visualization */}
+                    <div className="mb-8 p-6 rounded-2xl bg-white/5 border border-white/5">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Smart Contract Status</h3>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-xs font-mono text-emerald-400">0x...{ESCROW_ADDRESS.substring(38)}</span>
+                            </div>
+                        </div>
+                        <EscrowProgress status={submissionsList.some((s: any) => s.isPaid) ? 4 : submissionsList.some((s: any) => s.isVerified) ? 3 : submissionsList.length > 0 ? 2 : 1} />
+                    </div>
+
                     {activeTab === "submissions" && (
                         <div className="space-y-6">
                             {/* Toolbar */}
@@ -172,14 +273,18 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
 
 
                     {activeTab === "analytics" && (
-                        <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-                                <Zap className="w-8 h-8 text-purple-500" />
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <Zap className="w-5 h-5 text-purple-500" />
+                                    AI Verification History
+                                </h3>
+                                <span className="text-xs text-gray-500 bg-white/5 px-3 py-1 rounded-full">
+                                    Campaign #{id}
+                                </span>
                             </div>
-                            <h3 className="text-xl font-bold text-white">Analytics Coming Soon</h3>
-                            <p className="text-gray-400 max-w-md">
-                                Detailed breakdown of engagement, ROI, and audience demographics will be available in the next update.
-                            </p>
+
+                            <CampaignSubmissionHistory campaignId={id} />
                         </div>
                     )}
 
@@ -224,10 +329,34 @@ function SubmissionRow({ sub, campaignId, onVerify, onManualVerify, isPendingTx,
             const data = await res.json();
             setAiStatus('success');
             setAiResult(data);
+
+            // Store submission in localStorage for analytics history
+            try {
+                const existingHistory = JSON.parse(localStorage.getItem('submission-history') || '[]');
+                const newSubmission = {
+                    url: sub.submissionUrl,
+                    campaignId,
+                    creatorAddress: sub.creator,
+                    verified: data.verified,
+                    score: data.score,
+                    reason: data.reason,
+                    platform: data.details?.platform,
+                    contentType: data.details?.contentType,
+                    matchedRequirements: data.aiAnalysis?.detectedHashtags || [],
+                    missedRequirements: data.aiAnalysis?.brandMentions || [],
+                    timestamp: new Date().toISOString(),
+                    txHash: data.txHash
+                };
+                existingHistory.unshift(newSubmission);
+                // Keep only last 50 submissions
+                localStorage.setItem('submission-history', JSON.stringify(existingHistory.slice(0, 50)));
+            } catch (e) {
+                console.log('Failed to save submission history:', e);
+            }
+
             if (data.txHash) {
-                // If a payout was triggered, we should refetch to update the status
                 console.log("Payout triggered for creator:", sub.creator);
-                setTimeout(onVerify, 2000); // Trigger refetch after short delay to allow block inclusion
+                setTimeout(onVerify, 2000);
             }
         } catch (e) {
             setAiStatus('error');

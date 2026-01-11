@@ -15,6 +15,7 @@ import {
     LogOut,
     Wallet
 } from "lucide-react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 
 const mainNav = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -140,16 +141,96 @@ export function Sidebar() {
             </div>
 
             <div className="p-4 mt-auto">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 relative overflow-hidden group">
-                    <div className="relative z-10">
-                        <p className="text-xs font-medium text-white/90">Upgrade to Pro</p>
-                        <p className="text-[10px] text-white/50 mt-1">Get advanced AI analytics</p>
-                        <button className="w-full mt-3 bg-white text-slate-900 text-xs font-bold py-2 rounded-lg hover:bg-white/90 transition-colors">
-                            Go Premium
-                        </button>
-                    </div>
-                    <div className="absolute top-0 right-0 -mr-4 -mt-4 w-16 h-16 bg-primary/20 blur-2xl rounded-full" />
-                </div>
+                <ConnectButton.Custom>
+                    {({
+                        account,
+                        chain,
+                        openAccountModal,
+                        openChainModal,
+                        openConnectModal,
+                        authenticationStatus,
+                        mounted,
+                    }) => {
+                        const ready = mounted && authenticationStatus !== 'loading';
+                        const connected =
+                            ready &&
+                            account &&
+                            chain &&
+                            (!authenticationStatus ||
+                                authenticationStatus === 'authenticated');
+
+                        return (
+                            <div
+                                {...(!ready && {
+                                    'aria-hidden': true,
+                                    'style': {
+                                        opacity: 0,
+                                        pointerEvents: 'none',
+                                        userSelect: 'none',
+                                    },
+                                })}
+                            >
+                                {(() => {
+                                    if (!connected) {
+                                        return (
+                                            <button
+                                                onClick={openConnectModal}
+                                                className="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors shadow-lg shadow-white/10"
+                                            >
+                                                Connect Wallet
+                                            </button>
+                                        );
+                                    }
+
+                                    if (chain.unsupported) {
+                                        return (
+                                            <button
+                                                onClick={openChainModal}
+                                                className="w-full bg-red-500/10 text-red-500 border border-red-500/20 font-bold py-3 rounded-xl hover:bg-red-500/20 transition-colors"
+                                            >
+                                                Wrong Network
+                                            </button>
+                                        );
+                                    }
+
+                                    return (
+                                        <div className="p-3 rounded-2xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 relative overflow-hidden group">
+                                            <div className="flex items-center gap-3 relative z-10">
+                                                <button onClick={openAccountModal} className="relative">
+                                                    {account.displayBalance ? (
+                                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 p-[1px]">
+                                                            <div className="w-full h-full rounded-xl bg-[#0B0B15] flex items-center justify-center">
+                                                                <Wallet size={18} className="text-white" />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-xl bg-gray-700 animate-pulse" />
+                                                    )}
+                                                </button>
+
+                                                <div className="flex flex-col flex-1 min-w-0">
+                                                    <span className="text-sm font-bold text-white truncate block">
+                                                        {account.displayName}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-400 font-medium truncate block">
+                                                        {account.displayBalance ? `${account.displayBalance} (${chain.name})` : 'Connected'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={openAccountModal}
+                                                className="absolute inset-0 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[1px] flex items-center justify-center"
+                                            >
+                                                <span className="text-xs font-bold text-white bg-black/50 px-3 py-1 rounded-full border border-white/20">Manage</span>
+                                            </button>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        );
+                    }}
+                </ConnectButton.Custom>
             </div>
         </div>
     );
