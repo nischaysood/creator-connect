@@ -3,6 +3,7 @@
 import React from "react";
 import {
     CheckCircle2,
+    XCircle,
     Clock,
     Zap,
     ExternalLink,
@@ -48,6 +49,7 @@ export function CreatorEnrollments({ enrollments, onRefetch }: CreatorEnrollment
                         const isPaid = enrollment.isPaid;
                         const isVerified = enrollment.isVerified;
                         const hasSubmitted = enrollment.submissionUrl && enrollment.submissionUrl.length > 0;
+                        const isRejected = enrollment.isRejected;
 
                         return (
                             <div
@@ -72,6 +74,10 @@ export function CreatorEnrollments({ enrollments, onRefetch }: CreatorEnrollment
                                                 <span className="flex items-center gap-1 text-emerald-400 font-bold text-xs bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
                                                     <CheckCircle2 className="w-3 h-3" /> Paid
                                                 </span>
+                                            ) : isRejected ? (
+                                                <span className="flex items-center gap-1 text-red-400 font-bold text-xs bg-red-400/10 px-2 py-0.5 rounded-full border border-red-400/20">
+                                                    <XCircle className="w-3 h-3" /> Rejected
+                                                </span>
                                             ) : isVerified ? (
                                                 <span className="flex items-center gap-1 text-blue-400 font-bold text-xs bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-400/20">
                                                     <CheckCircle2 className="w-3 h-3" /> Verified
@@ -93,12 +99,12 @@ export function CreatorEnrollments({ enrollments, onRefetch }: CreatorEnrollment
                                             onClick={() => setSelectedCampaign(campaign)}
                                             className={cn(
                                                 "px-3 py-1.5 rounded-lg font-bold text-xs transition-all flex items-center gap-1",
-                                                hasSubmitted
+                                                (hasSubmitted && !isRejected)
                                                     ? "bg-white/10 text-white hover:bg-white/20 border border-white/10"
-                                                    : "bg-cyan-600 text-white hover:bg-cyan-500"
+                                                    : "bg-cyan-600 text-white hover:bg-cyan-500" // Primary color for Retry/Submit
                                             )}
                                         >
-                                            {hasSubmitted ? "Update" : "Submit"}
+                                            {isRejected ? "Retry" : hasSubmitted ? "Update" : "Submit"}
                                             <ExternalLink className="w-3 h-3" />
                                         </button>
                                     )}

@@ -39,6 +39,7 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
         string submissionUrl;
         bool isVerified;
         bool isPaid;
+        bool isRejected;
         uint256 joinedAt;
     }
 
@@ -114,6 +115,7 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
             submissionUrl: "",
             isVerified: false,
             isPaid: false,
+            isRejected: false,
             joinedAt: block.timestamp
         }));
         
@@ -134,6 +136,7 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
             if (enrolled[i].creator == msg.sender) {
                 require(!enrolled[i].isVerified, "Already verified");
                 enrolled[i].submissionUrl = _url;
+                enrolled[i].isRejected = false;
                 break;
             }
         }
@@ -156,11 +159,14 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
                 if (_isValid) {
                     enrolled[i].isVerified = true;
                     enrolled[i].isPaid = true;
+                    enrolled[i].isRejected = false;
                     
                     campaign.totalPaid += campaign.rewardPerCreator;
                     mneeToken.safeTransfer(_creator, campaign.rewardPerCreator);
                     
                     emit PaymentReleased(_campaignId, _creator, campaign.rewardPerCreator);
+                } else {
+                    enrolled[i].isRejected = true;
                 }
                 
                 emit SubmissionVerified(_campaignId, _creator, _isValid);
@@ -202,5 +208,28 @@ contract CreatorConnectEscrow is ReentrancyGuard, Ownable {
 
     function getCampaignEnrollments(uint256 _campaignId) external view returns (Enrollment[] memory) {
         return campaignEnrollments[_campaignId];
+    }
+    function toggleCampaignStatus(uint256 _campaignId, bool _isActive) external {
+        Campaign storage campaign = campaigns[_campaignId];
+        require(msg.sender == campaign.brand, "Only brand can update status");
+        
+        campaign.isActive = _isActive;
+    }
+
+    function withdrawRemainingFunds(uint256 _campaignId) external {
+        Campaign storage campaign = campaigns[_campaignId];
+        require(msg.sender == campaign.brand, "Only brand can withdraw");
+        require(campaign.isActive || campaign.totalPaid < campaign.totalDeposited, "Nothing to withdraw");
+
+        uint256 remaining = campaign.totalDeposited - campaign.totalPaid;
+        require(remaining > 0, "No funds remaining");
+
+        // Update state before transfer
+        campaign.totalDeposited = campaign.totalPaid; // Set deposited to what was spent
+        campaign.isActive = false; // Close campaign
+
+        mneeToken.safeTransfer(msg.sender, remaining);
+        
+        emit CampaignFunded(_campaignId, 0); // Signal that funds are drained/adjusted
     }
 }

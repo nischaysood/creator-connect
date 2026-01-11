@@ -3,14 +3,8 @@ import { createWalletClient, http, publicActions } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { hardhat } from 'viem/chains';
 import { ESCROW_ADDRESS, ESCROW_ABI } from '@/constants';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-// ============================================
-// CONFIGURATION
-// ============================================
-
-// Hardhat Account #1 - Verifier agent
-const PRIVATE_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d' as `0x${string}`;
+// Hardhat Account #0 - Deployer (who is also the verifier in current deployment)
+const PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80' as `0x${string}`;
 const account = privateKeyToAccount(PRIVATE_KEY);
 
 const client = createWalletClient({
@@ -19,9 +13,8 @@ const client = createWalletClient({
     transport: http('http://127.0.0.1:8545')
 }).extend(publicActions);
 
-// Gemini API - Get your key from https://aistudio.google.com/app/apikey
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
+// Gemini API - Removed (Rule-Based Verification Enabled)
+const genAI = null;
 
 // ============================================
 // TYPES
@@ -92,7 +85,7 @@ function parseSocialUrl(url: string): PlatformInfo {
             return { platform: 'youtube', contentType: 'video', contentId: videoId, username: null, isValid: !!videoId && videoId.length >= 11 };
         }
 
-        if (hostname.includes('instagram.com')) {
+        if (hostname.includes('instagram.com') || hostname.includes('instagr.am')) {
             const reelMatch = pathname.match(/\/reel\/([A-Za-z0-9_-]+)/);
             const postMatch = pathname.match(/\/p\/([A-Za-z0-9_-]+)/);
             if (reelMatch) return { platform: 'instagram', contentType: 'reel', contentId: reelMatch[1], username: null, isValid: true };
@@ -153,7 +146,7 @@ async function validateWithOEmbed(url: string, platform: string): Promise<OEmbed
 // GEMINI AI ANALYSIS
 // ============================================
 
-async function analyzeWithGemini(
+/* async function analyzeWithGemini(
     thumbnailUrl: string | undefined,
     title: string,
     campaignRequirements?: string
@@ -179,67 +172,85 @@ async function analyzeWithGemini(
         console.log('[Gemini] Title:', title);
         console.log('[Gemini] Campaign Requirements:', campaignRequirements || 'None');
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+        let result;
+        try {
+            // Try primary model
+            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+            const prompt = `
+            Analyze this social media content for brand verification.
+            Title/Description: "${title}"
+            Campaign Rules: "${campaignRequirements || 'None'}"
 
-        // Campaign requirements matching prompt
-        const prompt = `You are a content verification AI for an influencer marketing platform.
-
-TASK: Analyze if the creator's content matches the brand's campaign requirements.
-
-CONTENT TITLE: "${title}"
-
-${campaignRequirements ? `BRAND REQUIREMENTS: ${campaignRequirements}` : 'BRAND REQUIREMENTS: General social media promotion'}
-
-ANALYZE AND RESPOND WITH ONLY VALID JSON (no markdown, no code blocks):
-{
-    "requirementMatch": 0-100 (how well content matches brand requirements),
-    "isContentAppropriate": true/false (no harmful/offensive content),
-    "isBrandSafe": true/false (safe for brand association),
-    "hasSponsorship": true/false (contains #ad #sponsored #paid etc),
-    "contentDescription": "brief description of content",
-    "matchedRequirements": ["list of requirements that were met"],
-    "missedRequirements": ["list of requirements NOT met"],
-    "confidenceScore": 0-100 (your confidence in this analysis),
-    "recommendation": "APPROVE" or "REJECT" or "REVIEW",
-    "reason": "1 sentence explaining your decision"
-}`;
-
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
-        console.log('[Gemini] Analysis response:', responseText);
-
-        // Parse JSON response
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-
-            // Calculate if should be paid based on requirement match
-            const shouldPay = parsed.requirementMatch >= 60 &&
-                parsed.isBrandSafe !== false &&
-                parsed.isContentAppropriate !== false;
-
-            console.log('[Gemini] Requirement Match:', parsed.requirementMatch);
-            console.log('[Gemini] Recommendation:', parsed.recommendation);
-            console.log('[Gemini] Should Pay:', shouldPay);
-
-            return {
-                isContentAppropriate: parsed.isContentAppropriate ?? true,
-                isBrandSafe: parsed.isBrandSafe ?? true,
-                hasSponsorship: parsed.hasSponsorship ?? false,
-                contentDescription: parsed.contentDescription || title,
-                detectedHashtags: parsed.matchedRequirements || [],
-                confidenceScore: parsed.requirementMatch || 50,
-                brandMentions: parsed.missedRequirements || [],
-                warnings: shouldPay ? [] : [`❌ ${parsed.reason || 'Requirements not met'}`]
-            };
+            Return JSON:
+            {
+                "isContentAppropriate": boolean,
+                "isBrandSafe": boolean,
+                "hasSponsorship": boolean (look for #ad, #sponsored, paid partnership),
+                "contentDescription": "brief summary",
+                "detectedHashtags": ["list", "of", "hashtags"],
+                "confidenceScore": number (0-100),
+                "brandMentions": ["list", "of", "brands"],
+                "warnings": ["list", "potential", "issues"]
+            }
+            `;
+            result = await model.generateContent(prompt);
+        } catch (err) {
+            console.warn('[Gemini] 1.5-flash failed, trying gemini-pro...', err);
+            // Fallback to older model
+            const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+            const prompt = `Analyze: "${title}". Rules: "${campaignRequirements}". Return JSON with isContentAppropriate, isBrandSafe, hasSponsorship, contentDescription, detectedHashtags, confidenceScore, brandMentions, warnings.`;
+            result = await model.generateContent(prompt);
         }
 
-        return defaultResult;
-    } catch (error: any) {
-        console.error('[Gemini] Analysis error:', error.message);
-        return { ...defaultResult, warnings: ['⚠️ AI analysis temporarily unavailable'] };
+        const response = await result.response;
+        const text = response.text();
+
+        // Clean markdown code blocks if present
+        const jsonStr = text.replace(/```json\n?|\n?```/g, '').trim();
+        const data = JSON.parse(jsonStr);
+
+        return { ...defaultResult, ...data };
+
+    } catch (error) {
+        console.error('[Gemini] AI Analysis Failed:', error);
+
+        // ----------------------------------------
+        // FALLBACK: RULE-BASED VERIFICATION
+        // ----------------------------------------
+        const titleLower = title.toLowerCase();
+        const reqs = (campaignRequirements || '').toLowerCase().split(/[\s,]+/).filter(w => w.length > 3);
+
+        // Check requirement matches
+        const matchedKeywords = reqs.filter(req => titleLower.includes(req));
+        const matchRatio = reqs.length > 0 ? matchedKeywords.length / reqs.length : 1;
+
+        // Basic Checks
+        const hashtags = title.match(/#[a-zA-Z0-9_]+/g) || [];
+        const isSponsored = /#ad|#sponsored|#partner|#collab/i.test(title);
+
+        // Optimistic Scoring for Fallback
+        const baseScore = 60; // Start with passing score if structure is okay
+        const matchBonus = Math.floor(matchRatio * 20); // Up to +20 for keyword matches
+        const sponsorBonus = isSponsored ? 10 : 0;
+
+        const fallbackScore = Math.min(100, baseScore + matchBonus + sponsorBonus);
+
+        console.log(`[Gemini] ⚠️ Using Fallback Logic. Score: ${fallbackScore}`);
+
+        return {
+            isContentAppropriate: true, // Assume innocent until proven guilty
+            isBrandSafe: true,
+            hasSponsorship: isSponsored,
+            contentDescription: `[Fallback Analysis] ${title.substring(0, 50)}...`,
+            detectedHashtags: hashtags,
+            confidenceScore: fallbackScore,
+            brandMentions: matchedKeywords,
+            warnings: ['⚠️ AI Service Unavailable - Verified using rule-based logic']
+        };
     }
-}
+} */
+
+
 
 // ============================================
 // COMPREHENSIVE VERIFICATION
@@ -274,53 +285,105 @@ async function verifyContent(url: string, campaignRequirements?: string): Promis
         };
     }
 
-    // Gemini AI Analysis
-    console.log('[Verifier] Running Gemini AI analysis...');
-    const aiAnalysis = await analyzeWithGemini(
-        oembedResult.thumbnail,
-        oembedResult.title || '',
-        campaignRequirements
-    );
+    // ----------------------------------------
+    // STRICT PLATFORM ENFORCEMENT
+    // ----------------------------------------
+    // ----------------------------------------
+    // STRICT PLATFORM ENFORCEMENT
+    // ----------------------------------------
+    let reqsLower = (campaignRequirements || '').toLowerCase();
 
-    // Calculate score
-    let score = 35; // Base
-    const reasons: string[] = [];
+    // Attempt to parse JSON to find explicit platform field
+    let explicitPlatform = null;
+    try {
+        const json = JSON.parse(campaignRequirements || '{}');
+        if (json.platform) explicitPlatform = json.platform.toLowerCase();
+    } catch (e) { /* Ignore non-JSON reqs */ }
 
-    // Platform (+15-20)
-    if (platformInfo.platform === 'youtube') { score += 20; reasons.push('✅ YouTube'); }
-    else if (platformInfo.platform === 'tiktok') { score += 18; reasons.push('✅ TikTok'); }
-    else { score += 15; reasons.push(`✅ ${platformInfo.platform}`); }
+    const detected = platformInfo.platform;
+    console.log(`[Verifier] Strict Check -> Explicit: "${explicitPlatform}" | Reqs: "${reqsLower}" | Detected: "${detected}"`);
 
-    // Content type (+5-10)
-    if (['video', 'reel', 'short'].includes(platformInfo.contentType)) { score += 10; reasons.push('🎬 Video'); }
+    // Override requirements if specific platform is selected in Wizard
+    const requiresYoutube = explicitPlatform
+        ? (explicitPlatform.includes('youtube') || explicitPlatform.includes('yt'))
+        : (reqsLower.includes('youtube') || reqsLower.includes('yt ') || reqsLower.includes('you tube') || reqsLower.includes('shorts'));
 
-    // AI Analysis scores
-    if (aiAnalysis.hasSponsorship) { score += 20; reasons.push('✅ #Ad disclosure found'); }
-    else { score -= 5; reasons.push('⚠️ No #Ad disclosure'); }
+    const requiresInsta = explicitPlatform
+        ? (explicitPlatform.includes('instagram') || explicitPlatform.includes('insta'))
+        : (reqsLower.includes('instagram') || reqsLower.includes('insta') || reqsLower.includes(' ig ') || reqsLower.includes('reel'));
 
-    if (aiAnalysis.isBrandSafe) { score += 10; reasons.push('✅ Brand safe'); }
-    else { score -= 20; reasons.push('❌ Brand safety issue'); }
+    const requiresTiktok = explicitPlatform
+        ? (explicitPlatform.includes('tiktok'))
+        : (reqsLower.includes('tiktok') || reqsLower.includes('tik tok'));
 
-    if (aiAnalysis.isContentAppropriate) { score += 5; }
-    else { score -= 25; reasons.push('❌ Inappropriate content'); }
+    const requiresTwitter = explicitPlatform
+        ? (explicitPlatform.includes('twitter') || explicitPlatform.includes('x.com'))
+        : (reqsLower.includes('twitter') || reqsLower.includes('x.com') || reqsLower.includes('tweet'));
 
-    // Confidence bonus
-    if (aiAnalysis.confidenceScore >= 80) { score += 10; }
-    else if (aiAnalysis.confidenceScore >= 60) { score += 5; }
 
-    // Title/author
-    if (oembedResult.title) {
-        reasons.push(`📝 "${oembedResult.title.substring(0, 30)}..."`);
+    // YouTube Checks
+    if (requiresYoutube && detected !== 'youtube') {
+        console.log('[Verifier] ❌ STRICT FAIL: Campaign requires YouTube');
+        return {
+            verified: false, score: 0,
+            reason: '❌ Mismatch: Campaign requires YouTube',
+            details: { platform: platformInfo.platform, contentType: platformInfo.contentType, contentId: platformInfo.contentId, contentExists: true }
+        };
     }
 
-    score = Math.min(99, Math.max(0, score));
-    const verified = score >= 60 && aiAnalysis.isBrandSafe && aiAnalysis.isContentAppropriate;
+    // Instagram Checks
+    if (requiresInsta && detected !== 'instagram') {
+        console.log('[Verifier] ❌ STRICT FAIL: Campaign requires Instagram');
+        return {
+            verified: false, score: 0,
+            reason: '❌ Mismatch: Campaign requires Instagram',
+            details: { platform: platformInfo.platform, contentType: platformInfo.contentType, contentId: platformInfo.contentId, contentExists: true }
+        };
+    }
+
+    // TikTok Checks
+    if (requiresTiktok && detected !== 'tiktok') {
+        console.log('[Verifier] ❌ STRICT FAIL: Campaign requires TikTok');
+        return {
+            verified: false, score: 0,
+            reason: '❌ Mismatch: Campaign requires TikTok',
+            details: { platform: platformInfo.platform, contentType: platformInfo.contentType, contentId: platformInfo.contentId, contentExists: true }
+        };
+    }
+
+    // Twitter Checks
+    if (requiresTwitter && detected !== 'twitter') {
+        console.log('[Verifier] ❌ STRICT FAIL: Campaign requires Twitter');
+        return {
+            verified: false, score: 0,
+            reason: '❌ Mismatch: Campaign requires Twitter',
+            details: { platform: platformInfo.platform, contentType: platformInfo.contentType, contentId: platformInfo.contentId, contentExists: true }
+        };
+    }
+
+    // ----------------------------------------
+    // ----------------------------------------
+    // DETERMINISTIC RULE MATCHING (Simplified)
+    // ----------------------------------------
+    console.log('[Verifier] Running Rule-Based Analysis...');
+
+    // User Requested: "Title descip tko mat match kar yr sirf url se test kar"
+    // Logic: If Platform Strict Check Passed (above) AND oEmbed Exists -> VERIFY.
+
+    let score = 85; // High score for valid connected content
+    const reasons: string[] = ['✅ Platform Matched', '✅ Content Exists (Verified via oEmbed)'];
+
+    let isBrandSafe = true;
+    let isContentAppropriate = true;
+
+    // Final Validation
+    // Final Validation
+    const verified = true; // Strict checks passed + Content exists = Verified.
 
     return {
         verified,
         score,
         reason: reasons.join(' • '),
-        aiAnalysis,
         details: {
             platform: platformInfo.platform,
             contentType: platformInfo.contentType,
@@ -364,6 +427,24 @@ export async function POST(req: Request) {
         if (campaignId !== undefined) {
             try {
                 console.log(`[AI Agent] ✅ VERIFIED - Triggering payout...`);
+
+                // DEBUG: Check verifier agent on chain
+                try {
+                    const currentVerifier = await client.readContract({
+                        address: ESCROW_ADDRESS as `0x${string}`,
+                        abi: ESCROW_ABI,
+                        functionName: 'verifierAgent',
+                    });
+                    console.log(`[AI Agent] My Address: ${account.address}`);
+                    console.log(`[AI Agent] Contract Verifier: ${currentVerifier}`);
+
+                    if (currentVerifier.toLowerCase() !== account.address.toLowerCase()) {
+                        console.error(`[AI Agent] ❌ MISMATCH! I am not the verifier.`);
+                    }
+                } catch (e) {
+                    console.log('Error reading verifier:', e);
+                }
+
                 txHash = await client.writeContract({
                     address: ESCROW_ADDRESS as `0x${string}`,
                     abi: ESCROW_ABI,

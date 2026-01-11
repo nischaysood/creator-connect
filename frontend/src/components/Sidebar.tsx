@@ -16,6 +16,9 @@ import {
     Wallet
 } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount, useReadContract } from "wagmi";
+import { formatEther } from "viem";
+import { MOCK_MNEE_ADDRESS, MOCK_MNEE_ABI } from "@/constants";
 
 const mainNav = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -45,6 +48,45 @@ export function Sidebar() {
             setRole(savedRole);
         }
     }, [searchParams]);
+
+    // Auto-Faucet for seamless testing
+    const { address, isConnected } = useAccount();
+
+    useEffect(() => {
+        if (isConnected && address) {
+            const fundWallet = async () => {
+                try {
+                    // Check if already funded this session to prevent spam (optional, but API handles balance check)
+                    const key = `funded-${address}`;
+                    if (sessionStorage.getItem(key)) return;
+
+                    console.log('💰 Auto-Faucet: Checking balance for', address);
+                    await fetch('/api/faucet', {
+                        method: 'POST',
+                        body: JSON.stringify({ address }),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    sessionStorage.setItem(key, 'true');
+                    console.log('✅ Auto-Faucet: Funding check complete');
+                } catch (e) {
+                    console.error('Faucet error:', e);
+                }
+            };
+            fundWallet();
+        }
+    }, [address, isConnected]);
+
+    // MNEE Balance Fetch
+    const { data: mneeData } = useReadContract({
+        address: MOCK_MNEE_ADDRESS as `0x${string}`,
+        abi: MOCK_MNEE_ABI,
+        functionName: 'balanceOf',
+        args: address ? [address] : undefined,
+    });
+
+    // Format balance (18 decimals)
+    const mneeBalance = mneeData ? Number(formatEther(mneeData as bigint)).toFixed(0) : '0';
 
     const navItems = mainNav.map(item => {
         if (item.name === "Creators" && role === "creator") {
@@ -212,9 +254,14 @@ export function Sidebar() {
                                                     <span className="text-sm font-bold text-white truncate block">
                                                         {account.displayName}
                                                     </span>
-                                                    <span className="text-[10px] text-gray-400 font-medium truncate block">
-                                                        {account.displayBalance ? `${account.displayBalance} (${chain.name})` : 'Connected'}
-                                                    </span>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-[10px] text-gray-400 font-medium truncate block">
+                                                            {account.displayBalance ? `${account.displayBalance} ETH` : ''}
+                                                        </span>
+                                                        <span className="text-[10px] text-emerald-400 font-bold truncate block">
+                                                            {mneeBalance} MNEE
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
 

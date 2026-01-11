@@ -191,10 +191,10 @@ export function CreateCampaignWizard({ onSuccess }: { onSuccess: () => void }) {
                                         onChange={e => setFormData({ ...formData, platform: e.target.value })}
                                         className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white appearance-none focus:outline-none focus:border-purple-500/50"
                                     >
-                                        <option>Instagram</option>
-                                        <option>TikTok</option>
-                                        <option>X (Twitter)</option>
-                                        <option>YouTube Shorts</option>
+                                        <option className="bg-gray-900 text-white">Instagram</option>
+                                        <option className="bg-gray-900 text-white">TikTok</option>
+                                        <option className="bg-gray-900 text-white">X (Twitter)</option>
+                                        <option className="bg-gray-900 text-white">YouTube Shorts</option>
                                     </select>
                                 </div>
                             </div>
@@ -205,9 +205,9 @@ export function CreateCampaignWizard({ onSuccess }: { onSuccess: () => void }) {
                                     onChange={e => setFormData({ ...formData, contentType: e.target.value })}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:border-purple-500/50"
                                 >
-                                    <option>Reel / Short</option>
-                                    <option>Static Post</option>
-                                    <option>Story</option>
+                                    <option className="bg-gray-900 text-white">Reel / Short</option>
+                                    <option className="bg-gray-900 text-white">Static Post</option>
+                                    <option className="bg-gray-900 text-white">Story</option>
                                 </select>
                             </div>
                         </div>

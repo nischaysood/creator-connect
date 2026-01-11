@@ -113,7 +113,7 @@ function DashboardContent() {
     });
 
     // 3. User Balance
-    const { data: mneeBalance } = useReadContract({
+    const { data: mneeBalance, refetch: refetchBalance } = useReadContract({
         address: MOCK_MNEE_ADDRESS as `0x${string}`,
         abi: MOCK_MNEE_ABI,
         functionName: "balanceOf",
@@ -205,7 +205,12 @@ function DashboardContent() {
                 }
                 return null;
             })
-            .filter((c: any) => c !== null)
+            .filter((c: any) => {
+                if (c === null) return false;
+                // For Creators: Only show ACTIVE campaigns (Index 7 is isActive)
+                if (role === 'creator' && !c[7]) return false;
+                return true;
+            })
             .reverse();
     }, [campaignsData]);
 
@@ -303,6 +308,10 @@ function DashboardContent() {
                         id={Number(selectedCampaign[0])}
                         campaign={selectedCampaign}
                         onClose={() => setSelectedCampaign(null)}
+                        onRefetch={() => {
+                            refetchCampaigns();
+                            refetchBalance();
+                        }}
                     />
                 )}
 

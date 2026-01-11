@@ -22,6 +22,7 @@ interface CampaignManagerProps {
     id: number;
     campaign: any;
     onClose: () => void;
+    onRefetch?: () => void;
 }
 
 // Component to show submission history for a specific campaign
@@ -109,7 +110,7 @@ function CampaignSubmissionHistory({ campaignId }: { campaignId: number }) {
     );
 }
 
-export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps) {
+export function CampaignManager({ id, campaign, onClose, onRefetch }: CampaignManagerProps) {
     const [activeTab, setActiveTab] = useState<"submissions" | "analytics" | "settings">("submissions");
     const [verifyingId, setVerifyingId] = useState<string | null>(null);
 
@@ -124,6 +125,16 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
         }
     });
 
+    // Fetch Campaign Details
+    const { data: campaignDataRaw } = useReadContract({
+        address: ESCROW_ADDRESS,
+        abi: ESCROW_ABI,
+        functionName: "campaigns",
+        args: [BigInt(id)],
+        query: { refetchInterval: 2000 }
+    });
+    const campaignData = campaignDataRaw as unknown as any[];
+
     const { writeContract, data: hash, isPending } = useWriteContract();
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
 
@@ -131,9 +142,10 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
         if (isConfirmed) {
             setVerifyingId(null);
             refetch();
+            if (onRefetch) onRefetch();
             alert("Transaction Confirmed!");
         }
-    }, [isConfirmed, refetch]);
+    }, [isConfirmed, refetch, onRefetch]);
 
     const handleVerify = (creatorAddress: string) => {
         setVerifyingId(creatorAddress);
@@ -263,6 +275,7 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
                                                 onManualVerify={() => handleVerify(sub.creator)}
                                                 isPendingTx={(isPending || isConfirming) && verifyingId === sub.creator}
                                                 isConfirming={isConfirming && verifyingId === sub.creator}
+                                                requirements={campaign[2]}
                                             />
                                         ))}
                                     </tbody>
@@ -292,13 +305,54 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
                         <div className="max-w-xl space-y-6">
                             <h3 className="text-xl font-bold text-white">Campaign Settings</h3>
                             <div className="space-y-4">
+                                {/* PAUSE / RESUME */}
+                                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <h4 className="text-sm font-bold text-yellow-400">
+                                            {campaignData?.[7] ? "Pause Campaign" : "Resume Campaign"}
+                                        </h4>
+                                        <p className="text-xs text-gray-400">
+                                            {campaignData?.[7] ? "Temporarily stop new creators from joining." : "Re-activate campaign to allow enrollments."}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            writeContract({
+                                                address: ESCROW_ADDRESS,
+                                                abi: ESCROW_ABI,
+                                                functionName: "toggleCampaignStatus",
+                                                args: [BigInt(id), !campaignData?.[7]],
+                                            });
+                                        }}
+                                        className={cn(
+                                            "px-4 py-2 rounded-lg text-xs font-bold transition-colors",
+                                            campaignData?.[7] ? "bg-yellow-500 hover:bg-yellow-600 text-black" : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                                        )}
+                                    >
+                                        {campaignData?.[7] ? "Pause" : "Resume"}
+                                    </button>
+                                </div>
+
+                                {/* END & REFUND */}
                                 <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-between">
                                     <div className="space-y-1">
-                                        <h4 className="text-sm font-bold text-red-400">Pause Campaign</h4>
-                                        <p className="text-xs text-gray-400">Temporarily stop new creators from joining.</p>
+                                        <h4 className="text-sm font-bold text-red-400">End Campaign & Refund</h4>
+                                        <p className="text-xs text-gray-400">Permanently close and withdraw unused budget.</p>
                                     </div>
-                                    <button className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-colors">
-                                        Pause
+                                    <button
+                                        onClick={() => {
+                                            if (confirm("Are you sure? This will END the campaign and refund remaining budget.")) {
+                                                writeContract({
+                                                    address: ESCROW_ADDRESS,
+                                                    abi: ESCROW_ABI,
+                                                    functionName: "withdrawRemainingFunds",
+                                                    args: [BigInt(id)],
+                                                });
+                                            }
+                                        }}
+                                        className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-colors"
+                                    >
+                                        End & Refund
                                     </button>
                                 </div>
                             </div>
@@ -311,7 +365,7 @@ export function CampaignManager({ id, campaign, onClose }: CampaignManagerProps)
     );
 }
 
-function SubmissionRow({ sub, campaignId, onVerify, onManualVerify, isPendingTx, isConfirming }: { sub: any, campaignId: number, onVerify: () => void, onManualVerify: () => void, isPendingTx: boolean, isConfirming: boolean }) {
+function SubmissionRow({ sub, campaignId, onVerify, onManualVerify, isPendingTx, isConfirming, requirements }: { sub: any, campaignId: number, onVerify: () => void, onManualVerify: () => void, isPendingTx: boolean, isConfirming: boolean, requirements: string }) {
     const [aiStatus, setAiStatus] = useState<'idle' | 'analyzing' | 'success' | 'error'>('idle');
     const [aiResult, setAiResult] = useState<any>(null);
 
@@ -323,7 +377,8 @@ function SubmissionRow({ sub, campaignId, onVerify, onManualVerify, isPendingTx,
                 body: JSON.stringify({
                     url: sub.submissionUrl,
                     campaignId: campaignId.toString(),
-                    creatorAddress: sub.creator
+                    creatorAddress: sub.creator,
+                    campaignRequirements: requirements
                 }),
             });
             const data = await res.json();
@@ -417,6 +472,10 @@ function SubmissionRow({ sub, campaignId, onVerify, onManualVerify, isPendingTx,
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20">
                         <CheckCircle2 className="w-3 h-3" /> Paid & Verified
                     </span>
+                ) : sub.isRejected ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 text-xs font-bold border border-red-500/20">
+                        <XCircle className="w-3 h-3" /> Rejected
+                    </span>
                 ) : sub.isVerified ? (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/20">
                         <CheckCircle2 className="w-3 h-3" /> Verified (Unpaid)
@@ -432,9 +491,14 @@ function SubmissionRow({ sub, campaignId, onVerify, onManualVerify, isPendingTx,
                 )}
             </td>
             <td className="p-4 text-right">
-                {!sub.isPaid && sub.submissionUrl && aiStatus === 'success' && aiResult?.verified && (
+                {!sub.isPaid && sub.submissionUrl && aiStatus === 'success' && aiResult?.verified && aiResult?.txHash && (
                     <span className="text-[10px] text-emerald-400 font-bold flex items-center justify-end gap-1">
                         <CheckCircle2 className="w-3 h-3" /> Payout Automated
+                    </span>
+                )}
+                {!sub.isPaid && sub.submissionUrl && aiStatus === 'success' && aiResult?.verified && !aiResult?.txHash && (
+                    <span className="text-[10px] text-yellow-400 font-bold flex items-center justify-end gap-1" title="Verification passed but payout failed. Check verifier permissions.">
+                        <XCircle className="w-3 h-3" /> Payout Failed
                     </span>
                 )}
             </td>

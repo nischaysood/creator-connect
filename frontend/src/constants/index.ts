@@ -1,5 +1,5 @@
-export const MOCK_MNEE_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-export const ESCROW_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+export const MOCK_MNEE_ADDRESS = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9";
+export const ESCROW_ADDRESS = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707";
 
 export const ESCROW_ABI = [
     {
@@ -165,6 +165,7 @@ export const ESCROW_ABI = [
                     { "internalType": "string", "name": "submissionUrl", "type": "string" },
                     { "internalType": "bool", "name": "isVerified", "type": "bool" },
                     { "internalType": "bool", "name": "isPaid", "type": "bool" },
+                    { "internalType": "bool", "name": "isRejected", "type": "bool" },
                     { "internalType": "uint256", "name": "joinedAt", "type": "uint256" }
                 ],
                 "internalType": "struct CreatorConnectEscrow.Enrollment[]",
@@ -251,6 +252,44 @@ export const ESCROW_ABI = [
             { "internalType": "bool", "name": "_isValid", "type": "bool" }
         ],
         "name": "verifyAndRelease",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_campaignId", "type": "uint256" },
+            { "internalType": "bool", "name": "_isActive", "type": "bool" }
+        ],
+        "name": "toggleCampaignStatus",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_campaignId", "type": "uint256" }
+        ],
+        "name": "withdrawRemainingFunds",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_campaignId", "type": "uint256" },
+            { "internalType": "bool", "name": "_isActive", "type": "bool" }
+        ],
+        "name": "toggleCampaignStatus",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            { "internalType": "uint256", "name": "_campaignId", "type": "uint256" }
+        ],
+        "name": "withdrawRemainingFunds",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
